@@ -1,15 +1,56 @@
 import { useState, useRef, useEffect } from 'react';
 
+interface TooltipPosition {
+  x: number;
+  y: number;
+}
+
 export function ReadingView() {
   const [sidebarWidth, setSidebarWidth] = useState(380);
   const [isResizing, setIsResizing] = useState(false);
+  const [selectedText, setSelectedText] = useState('');
+  const [tooltipPosition, setTooltipPosition] = useState<TooltipPosition | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const readingPanelRef = useRef<HTMLDivElement>(null);
 
   const handleMouseDown = (e: React.MouseEvent) => {
     e.preventDefault();
     setIsResizing(true);
   };
 
+  // Handle text selection
+  useEffect(() => {
+    const handleSelection = () => {
+      const selection = window.getSelection();
+      const text = selection?.toString().trim();
+      
+      if (text && text.length > 0 && readingPanelRef.current) {
+        const range = selection?.getRangeAt(0);
+        const rect = range?.getBoundingClientRect();
+        
+        if (rect) {
+          setSelectedText(text);
+          setTooltipPosition({
+            x: rect.left + rect.width / 2,
+            y: rect.top - 10
+          });
+        }
+      } else {
+        setSelectedText('');
+        setTooltipPosition(null);
+      }
+    };
+
+    document.addEventListener('mouseup', handleSelection);
+    document.addEventListener('selectionchange', handleSelection);
+
+    return () => {
+      document.removeEventListener('mouseup', handleSelection);
+      document.removeEventListener('selectionchange', handleSelection);
+    };
+  }, []);
+
+  // Handle sidebar resizing
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
       if (!isResizing || !containerRef.current) return;
@@ -42,6 +83,12 @@ export function ReadingView() {
     };
   }, [isResizing]);
 
+  const handleTranslate = () => {
+    console.log('Translating:', selectedText);
+    // Translation logic will be implemented later
+    // For now, just log the selected text
+  };
+
   return (
     <div className="flex flex-col h-screen">
       {/* Header */}
@@ -67,8 +114,35 @@ export function ReadingView() {
 
       {/* Main Content */}
       <div ref={containerRef} className="flex flex-1 overflow-hidden">
+        {/* Translation Tooltip */}
+        {tooltipPosition && selectedText && (
+          <div
+            className="fixed z-50 animate-tooltipIn"
+            style={{
+              left: `${tooltipPosition.x}px`,
+              top: `${tooltipPosition.y}px`,
+              transform: 'translate(-50%, -100%)'
+            }}
+          >
+            <div className="bg-[var(--color-ink)] text-white px-4 py-2 rounded-lg shadow-xl flex items-center gap-2">
+              <button
+                onClick={handleTranslate}
+                className="flex items-center gap-2 hover:text-[var(--color-amber-light)] transition-colors"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129" />
+                </svg>
+                <span className="text-sm font-medium">Translate</span>
+              </button>
+            </div>
+            {/* Tooltip arrow */}
+            <div className="absolute left-1/2 -translate-x-1/2 top-full w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-t-[6px] border-t-[var(--color-ink)]" />
+          </div>
+        )}
+
         {/* Main Reading Panel */}
         <main 
+          ref={readingPanelRef}
           className="flex-1 overflow-y-auto px-12 py-10 animate-fadeIn"
           style={{ 
             marginRight: `${sidebarWidth}px`,
