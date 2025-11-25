@@ -1,15 +1,95 @@
+@import url('https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,200..900;1,200..900&family=Figtree:ital,wght@0,300..900;1,300..900&display=swap');
+
 @import "tailwindcss";
 
 @theme {
-  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif,
-    "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+  --font-sans: Figtree, ui-sans-serif, system-ui, sans-serif;
+  --font-serif: "Crimson Pro", ui-serif, Georgia, serif;
+  
+  /* Warm, literary color palette */
+  --color-parchment: #faf8f3;
+  --color-ink: #2a2419;
+  --color-ink-light: #4a4035;
+  --color-sepia: #8b7355;
+  --color-amber: #d4a574;
+  --color-amber-light: #e8c9a0;
+  --color-accent: #c17a4a;
+  --color-accent-dark: #9a5d38;
+  --color-border: #e5dfd5;
+  --color-panel: #f5f1ea;
 }
 
 html,
 body {
-  @apply bg-white dark:bg-gray-950;
+  @apply bg-[var(--color-parchment)] text-[var(--color-ink)];
+  font-family: var(--font-sans);
+  height: 100%;
+  overflow: hidden;
+}
 
-  @media (prefers-color-scheme: dark) {
-    color-scheme: dark;
+* {
+  box-sizing: border-box;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-border);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-sepia);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-accent);
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
   }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideDown {
+  from {
+    transform: translateY(-20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideLeft {
+  from {
+    transform: translateX(40px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.6s ease-out;
+}
+
+.animate-slideDown {
+  animation: slideDown 0.5s ease-out;
+}
+
+.animate-slideLeft {
+  animation: slideLeft 0.6s ease-out 0.2s both;
 }

@@ -1,13 +1,13 @@
 import type { Route } from "./+types/home";
-import { Welcome } from "../welcome/welcome";
+import { ReadingView } from "../components/ReadingView";
 
 export function meta({}: Route.MetaArgs) {
   return [
-    { title: "New React Router App" },
-    { name: "description", content: "Welcome to React Router!" },
+    { title: "LinguaScaffold - Contextual Language Learning" },
+    { name: "description", content: "Learn languages in context with interactive reading support" },
   ];
 }
 
 export default function Home() {
-  return <Welcome />;
+  return <ReadingView />;
 }
