@@ -84,6 +84,7 @@ export function TranslationResult({
   onDeleteFlashcard 
 }: TranslationResultProps) {
   const [draftFlashcard, setDraftFlashcard] = useState<DraftFlashcard | null>(null);
+  const [currentTranslationFlashcards, setCurrentTranslationFlashcards] = useState<Flashcard[]>([]);
   
   const colors = generateChunkColors(translation.chunkPairs.length);
   const translationChunks = translation.chunkPairs.map(pair => pair.translation);
@@ -93,12 +94,27 @@ export function TranslationResult({
   };
 
   const handleSaveFlashcard = (flashcard: DraftFlashcard) => {
+    const newFlashcard: Flashcard = {
+      id: Date.now().toString(),
+      targetWord: flashcard.targetWord,
+      translation: flashcard.translation,
+      createdAt: Date.now(),
+    };
+    
+    // Add to both the global list and current translation list
     onSaveFlashcard(flashcard);
+    setCurrentTranslationFlashcards([...currentTranslationFlashcards, newFlashcard]);
     setDraftFlashcard(null);
   };
 
   const handleCancelFlashcard = () => {
     setDraftFlashcard(null);
+  };
+
+  const handleDeleteCurrentFlashcard = (id: string) => {
+    // Remove from both lists
+    onDeleteFlashcard(id);
+    setCurrentTranslationFlashcards(currentTranslationFlashcards.filter(f => f.id !== id));
   };
   return (
     <div className="animate-fadeIn">
@@ -144,14 +160,14 @@ export function TranslationResult({
         </p>
       </div>
 
-      {/* Saved Flashcards */}
-      {savedFlashcards.length > 0 && (
+      {/* New Flashcards */}
+      {currentTranslationFlashcards.length > 0 && (
         <div className="mb-4">
           <h4 className="text-xs font-semibold text-[var(--color-sepia)] uppercase tracking-wider mb-3">
-            Saved Flashcards ({savedFlashcards.length})
+            New Flashcards ({currentTranslationFlashcards.length})
           </h4>
           <div className="space-y-2">
-            {savedFlashcards.map((flashcard) => (
+            {currentTranslationFlashcards.map((flashcard) => (
               <div
                 key={flashcard.id}
                 className="bg-white rounded-lg p-3 shadow-sm border border-[var(--color-border)] flex items-start justify-between gap-3 hover:shadow-md transition-shadow"
@@ -165,7 +181,7 @@ export function TranslationResult({
                   </div>
                 </div>
                 <button
-                  onClick={() => onDeleteFlashcard(flashcard.id)}
+                  onClick={() => handleDeleteCurrentFlashcard(flashcard.id)}
                   className="text-[var(--color-sepia)] hover:text-red-500 transition-colors flex-shrink-0"
                   aria-label="Delete flashcard"
                 >
