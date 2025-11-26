@@ -9,6 +9,9 @@ interface TranslationResultProps {
   translation: TranslationResponse;
   onClose: () => void;
   hoveredIndex: number | null;
+  savedFlashcards: Flashcard[];
+  onSaveFlashcard: (flashcard: DraftFlashcard) => void;
+  onDeleteFlashcard: (id: string) => void;
 }
 
 function renderTextWithHighlights(
@@ -72,9 +75,15 @@ function renderTextWithHighlights(
   return <>{parts}</>;
 }
 
-export function TranslationResult({ translation, onClose, hoveredIndex }: TranslationResultProps) {
+export function TranslationResult({ 
+  translation, 
+  onClose, 
+  hoveredIndex, 
+  savedFlashcards, 
+  onSaveFlashcard, 
+  onDeleteFlashcard 
+}: TranslationResultProps) {
   const [draftFlashcard, setDraftFlashcard] = useState<DraftFlashcard | null>(null);
-  const [savedFlashcards, setSavedFlashcards] = useState<Flashcard[]>([]);
   
   const colors = generateChunkColors(translation.chunkPairs.length);
   const translationChunks = translation.chunkPairs.map(pair => pair.translation);
@@ -84,22 +93,12 @@ export function TranslationResult({ translation, onClose, hoveredIndex }: Transl
   };
 
   const handleSaveFlashcard = (flashcard: DraftFlashcard) => {
-    const newFlashcard: Flashcard = {
-      id: Date.now().toString(),
-      targetWord: flashcard.targetWord,
-      translation: flashcard.translation,
-      createdAt: Date.now(),
-    };
-    setSavedFlashcards([...savedFlashcards, newFlashcard]);
+    onSaveFlashcard(flashcard);
     setDraftFlashcard(null);
   };
 
   const handleCancelFlashcard = () => {
     setDraftFlashcard(null);
-  };
-
-  const handleDeleteFlashcard = (id: string) => {
-    setSavedFlashcards(savedFlashcards.filter(f => f.id !== id));
   };
   return (
     <div className="animate-fadeIn">
@@ -166,7 +165,7 @@ export function TranslationResult({ translation, onClose, hoveredIndex }: Transl
                   </div>
                 </div>
                 <button
-                  onClick={() => handleDeleteFlashcard(flashcard.id)}
+                  onClick={() => onDeleteFlashcard(flashcard.id)}
                   className="text-[var(--color-sepia)] hover:text-red-500 transition-colors flex-shrink-0"
                   aria-label="Delete flashcard"
                 >

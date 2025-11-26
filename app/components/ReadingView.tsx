@@ -2,7 +2,9 @@ import { useState, useRef, useEffect } from 'react';
 import { TranslationResult } from './TranslationResult';
 import { HighlightedText } from './HighlightedText';
 import { TextUploadModal } from './TextUploadModal';
+import { FlashcardList } from './FlashcardList';
 import type { TranslationResponse } from '../routes/api.translate';
+import type { Flashcard, DraftFlashcard } from '../types/flashcard';
 
 interface TooltipPosition {
   x: number;
@@ -45,6 +47,7 @@ export function ReadingView() {
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [customText, setCustomText] = useState<CustomText>(DEFAULT_TEXT);
+  const [savedFlashcards, setSavedFlashcards] = useState<Flashcard[]>([]);
   const containerRef = useRef<HTMLDivElement>(null);
   const readingPanelRef = useRef<HTMLDivElement>(null);
 
@@ -155,6 +158,20 @@ export function ReadingView() {
     setCustomText({ title, language, content: text });
     setTranslation(null); // Clear any existing translation
     setIsUploadModalOpen(false);
+  };
+
+  const handleSaveFlashcard = (flashcard: DraftFlashcard) => {
+    const newFlashcard: Flashcard = {
+      id: Date.now().toString(),
+      targetWord: flashcard.targetWord,
+      translation: flashcard.translation,
+      createdAt: Date.now(),
+    };
+    setSavedFlashcards([...savedFlashcards, newFlashcard]);
+  };
+
+  const handleDeleteFlashcard = (id: string) => {
+    setSavedFlashcards(savedFlashcards.filter(f => f.id !== id));
   };
 
   return (
@@ -281,30 +298,35 @@ export function ReadingView() {
             {isTranslating ? (
               <div className="flex items-center justify-center h-full text-center px-4">
                 <div className="text-[var(--color-sepia)]">
-                  {/* <svg className="w-16 h-16 mx-auto mb-4 opacity-40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129" />
-                  </svg> */}
-
-                    <svg className="w-16 h-16 mx-auto mb-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                    </svg>
-                    <span className="text-sm font-medium">Translating...</span>
+                  <svg className="w-16 h-16 mx-auto mb-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                  <span className="text-sm font-medium">Translating...</span>
                 </div>
               </div>
-            ) :
-              translation ? (
-              <TranslationResult translation={translation} onClose={handleCloseTranslation} hoveredIndex={hoveredIndex} />
-            ) : (
-              <div className="flex items-center justify-center h-full text-center px-4">
+            ) : translation ? (
+              <TranslationResult 
+                translation={translation} 
+                onClose={handleCloseTranslation} 
+                hoveredIndex={hoveredIndex}
+                savedFlashcards={savedFlashcards}
+                onSaveFlashcard={handleSaveFlashcard}
+                onDeleteFlashcard={handleDeleteFlashcard}
+              />
+            ) : savedFlashcards.length > 0 ? (
+              <FlashcardList 
+                flashcards={savedFlashcards}
+                onDelete={handleDeleteFlashcard}
+              />
+            ) : <div className="flex items-center justify-center h-full text-center px-4">
                 <div className="text-[var(--color-sepia)]">
                   <svg className="w-16 h-16 mx-auto mb-4 opacity-40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129" />
                   </svg>
                   <p className="text-sm font-medium mb-2">Select text to translate</p>
-                  <p className="text-xs opacity-75">Highlight any text in the reading panel and click the Translate button!</p>
+                  <p className="text-xs opacity-75">Highlight any word, sentence, or passage in the reading panel and click the Translate button!</p>
                 </div>
-              </div>
-            )}
+              </div>}
           </div>
         </aside>
       </div>
