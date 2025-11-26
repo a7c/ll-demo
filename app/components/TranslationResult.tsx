@@ -4,6 +4,7 @@ import { generateChunkColors, getColorWithOpacity } from '../utils/colors';
 import { DropZone } from './DropZone';
 import { FlashcardEditor } from './FlashcardEditor';
 import type { DraftFlashcard, Flashcard } from '../types/flashcard';
+import { createFlashcard } from '../utils/flashcard';
 
 interface TranslationResultProps {
   translation: TranslationResponse;
@@ -94,12 +95,7 @@ export function TranslationResult({
   };
 
   const handleSaveFlashcard = (flashcard: DraftFlashcard) => {
-    const newFlashcard: Flashcard = {
-      id: Date.now().toString(),
-      targetWord: flashcard.targetWord,
-      translation: flashcard.translation,
-      createdAt: Date.now(),
-    };
+    const newFlashcard = createFlashcard(flashcard);
     
     // Add to both the global list and current translation list
     onSaveFlashcard(flashcard);

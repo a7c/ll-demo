@@ -3,8 +3,11 @@ import { TranslationResult } from './TranslationResult';
 import { HighlightedText } from './HighlightedText';
 import { TextUploadModal } from './TextUploadModal';
 import { FlashcardList } from './FlashcardList';
+import { FlashcardReviewModal } from './FlashcardReviewModal';
 import type { TranslationResponse } from '../routes/api.translate';
 import type { Flashcard, DraftFlashcard } from '../types/flashcard';
+import { Rating } from '../types/flashcard';
+import { createFlashcard } from '../utils/flashcard';
 
 interface TooltipPosition {
   x: number;
@@ -46,6 +49,7 @@ export function ReadingView() {
   const [isTranslating, setIsTranslating] = useState(false);
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+  const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
   const [customText, setCustomText] = useState<CustomText>(DEFAULT_TEXT);
   const [savedFlashcards, setSavedFlashcards] = useState<Flashcard[]>([]);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -161,17 +165,35 @@ export function ReadingView() {
   };
 
   const handleSaveFlashcard = (flashcard: DraftFlashcard) => {
-    const newFlashcard: Flashcard = {
-      id: Date.now().toString(),
-      targetWord: flashcard.targetWord,
-      translation: flashcard.translation,
-      createdAt: Date.now(),
-    };
+    const newFlashcard = createFlashcard(flashcard);
     setSavedFlashcards([...savedFlashcards, newFlashcard]);
   };
 
   const handleDeleteFlashcard = (id: string) => {
     setSavedFlashcards(savedFlashcards.filter(f => f.id !== id));
+  };
+
+  const handleStartReview = () => {
+    setIsReviewModalOpen(true);
+  };
+
+  const handleReview = (flashcardId: string, rating: Rating) => {
+    // TODO: Implement FSRS algorithm to update card parameters
+    // For now, just update basic stats
+    setSavedFlashcards(savedFlashcards.map(card => {
+      if (card.id === flashcardId) {
+        const now = Date.now();
+        return {
+          ...card,
+          reps: card.reps + 1,
+          lapses: rating === Rating.Again ? card.lapses + 1 : card.lapses,
+          last_review: now,
+          // Placeholder scheduling - will be replaced with FSRS
+          due: now + (rating === Rating.Again ? 60000 : rating === Rating.Hard ? 600000 : rating === Rating.Good ? 86400000 : 345600000)
+        };
+      }
+      return card;
+    }));
   };
 
   return (
@@ -317,6 +339,7 @@ export function ReadingView() {
               <FlashcardList 
                 flashcards={savedFlashcards}
                 onDelete={handleDeleteFlashcard}
+                onStartReview={handleStartReview}
               />
             ) : <div className="flex items-center justify-center h-full text-center px-4">
                 <div className="text-[var(--color-sepia)]">
@@ -336,6 +359,14 @@ export function ReadingView() {
         isOpen={isUploadModalOpen}
         onClose={() => setIsUploadModalOpen(false)}
         onUpload={handleUploadText}
+      />
+
+      {/* Flashcard Review Modal */}
+      <FlashcardReviewModal
+        isOpen={isReviewModalOpen}
+        flashcards={savedFlashcards}
+        onClose={() => setIsReviewModalOpen(false)}
+        onReview={handleReview}
       />
     </div>
   );

@@ -3,9 +3,10 @@ import type { Flashcard } from '../types/flashcard';
 interface FlashcardListProps {
   flashcards: Flashcard[];
   onDelete: (id: string) => void;
+  onStartReview?: () => void;
 }
 
-export function FlashcardList({ flashcards, onDelete }: FlashcardListProps) {
+export function FlashcardList({ flashcards, onDelete, onStartReview }: FlashcardListProps) {
   if (flashcards.length === 0) {
     return (
       <div className="flex items-center justify-center h-full text-center px-4">
@@ -68,7 +69,10 @@ export function FlashcardList({ flashcards, onDelete }: FlashcardListProps) {
       {/* Study Actions */}
       <div className="mt-6 pt-4 border-t border-[var(--color-border)]">
         <div className="flex gap-2">
-          <button className="flex-1 px-4 py-2 bg-gradient-to-br from-[var(--color-accent)] to-[var(--color-accent-dark)] text-white rounded-lg font-medium hover:shadow-md transition-all text-sm">
+          <button 
+            onClick={onStartReview}
+            className="flex-1 px-4 py-2 bg-gradient-to-br from-[var(--color-accent)] to-[var(--color-accent-dark)] text-white rounded-lg font-medium hover:shadow-md transition-all text-sm"
+          >
             Study All
           </button>
           <button className="px-4 py-2 border border-[var(--color-border)] text-[var(--color-ink-light)] rounded-lg font-medium hover:bg-[var(--color-parchment)] transition-colors text-sm">
