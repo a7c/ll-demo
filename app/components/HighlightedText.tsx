@@ -14,10 +14,23 @@ function indexOfIgnoreCase(text: string, search: string): number {
 
 export function HighlightedText({ text, translation, onHoverChange }: HighlightedTextProps) {
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
+  const [clickedIndices, setClickedIndices] = useState<Set<number>>(new Set());
 
   const handleHover = (index: number | null) => {
     setHoveredIndex(index);
     onHoverChange?.(index);
+  };
+
+  const handleClick = (index: number) => {
+    setClickedIndices(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(index)) {
+        newSet.delete(index);
+      } else {
+        newSet.add(index);
+      }
+      return newSet;
+    });
   };
 
   // If no translation, render plain text
@@ -81,6 +94,7 @@ export function HighlightedText({ text, translation, onHoverChange }: Highlighte
 
     // Add the highlighted chunk as a draggable pill
     const isHovered = hoveredIndex === index;
+    const isClicked = clickedIndices.has(index);
     const chunkTranslation = translation.chunkPairs[index].translation;
 
     const handleDragStart = (e: React.DragEvent) => {
@@ -96,7 +110,8 @@ export function HighlightedText({ text, translation, onHoverChange }: Highlighte
         key={`chunk-${index}`}
         draggable
         onDragStart={handleDragStart}
-        className="inline-block px-2 py-0.5 rounded-md font-medium transition-all duration-200 cursor-grab active:cursor-grabbing"
+        onMouseUp={() => handleClick(index)}
+        className={`inline-block px-2 py-0.5 rounded-md font-medium transition-all duration-200 cursor-grab active:cursor-grabbing ${isClicked ? 'font-sans' : ''}`}
         style={{
           backgroundColor: isHovered
             ? colors[index]
@@ -107,7 +122,7 @@ export function HighlightedText({ text, translation, onHoverChange }: Highlighte
         onMouseEnter={() => handleHover(index)}
         onMouseLeave={() => handleHover(null)}
       >
-        {originalText}
+        {isClicked ? chunkTranslation : originalText}
       </span>
     );
 
