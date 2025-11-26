@@ -1,5 +1,6 @@
 import type { Flashcard, DraftFlashcard } from '../types/flashcard';
 import { CardState } from '../types/flashcard';
+import { v4 as uuidv4 } from 'uuid';
 
 /**
  * Creates a new flashcard with initial FSRS parameters
@@ -8,7 +9,7 @@ export function createFlashcard(draft: DraftFlashcard): Flashcard {
   const now = Date.now();
   
   return {
-    id: now.toString(),
+    id: uuidv4(),
     targetWord: draft.targetWord,
     translation: draft.translation,
     createdAt: now,

@@ -56,6 +56,7 @@ export function TranslationResult({
   const colors = generateChunkColors(chunkPairs.length);
   const colorMap = buildColorMap(chunkPairs, colors);
 
+  // TODO: This should work by flashcard id instead
   // Filter flashcards that match the current translation's chunk pairs
   const currentTranslationFlashcards = savedFlashcards.filter(flashcard => 
     chunkPairs.some(pair => 
