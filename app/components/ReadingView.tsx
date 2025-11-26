@@ -421,6 +421,7 @@ export function ReadingView() {
             ) : savedFlashcards.length > 0 ? (
               <FlashcardList 
                 flashcards={savedFlashcards}
+                type="all"
                 onDelete={handleDeleteFlashcard}
                 onUpdate={handleUpdateFlashcard}
                 onStartReview={handleStartReview}

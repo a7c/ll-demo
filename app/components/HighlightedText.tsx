@@ -92,24 +92,14 @@ export function HighlightedText({ text, translation, onHoverChange }: Highlighte
     // get original text w/ case preserved
     const originalText = text.slice(absolutePos, absolutePos + chunk.length);
 
-    // Add the highlighted chunk as a draggable pill
+    // Add the highlighted chunk as a pill
     const isHovered = hoveredIndex === index;
     const isClicked = clickedIndices.has(index);
     const chunkTranslation = translation.chunkPairs[index].translation;
 
-    const handleDragStart = (e: React.DragEvent) => {
-      e.dataTransfer.effectAllowed = 'copy';
-      e.dataTransfer.setData('application/json', JSON.stringify({
-        targetWord: originalText,
-        translation: chunkTranslation
-      }));
-    };
-
     parts.push(
       <span
         key={`chunk-${index}`}
-        draggable
-        onDragStart={handleDragStart}
         onMouseUp={() => handleClick(index)}
         className={`inline-block px-2 py-0.5 rounded-md font-medium transition-all duration-200 cursor-grab active:cursor-grabbing ${isClicked ? 'font-sans' : ''}`}
         style={{
