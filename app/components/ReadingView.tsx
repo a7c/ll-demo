@@ -173,12 +173,8 @@ export function ReadingView() {
         <div className="flex items-center gap-4">
           <button 
             onClick={() => setIsUploadModalOpen(true)}
-            className="px-4 py-2 text-sm font-medium text-[var(--color-ink-light)] hover:text-[var(--color-accent)] transition-colors"
-          >
-            Upload Text
-          </button>
-          <button className="px-4 py-2 text-sm font-medium bg-[var(--color-accent)] text-white rounded-lg hover:bg-[var(--color-accent-dark)] transition-all shadow-sm hover:shadow-md">
-            Settings
+            className="px-4 py-2 text-sm font-medium bg-[var(--color-accent)] text-white rounded-lg hover:bg-[var(--color-accent-dark)] transition-all shadow-sm hover:shadow-md">
+            Upload new text
           </button>
         </div>
       </header>
@@ -282,7 +278,21 @@ export function ReadingView() {
 
           {/* Sidebar Content */}
           <div className="flex-1 overflow-y-auto p-6">
-            {translation ? (
+            {isTranslating ? (
+              <div className="flex items-center justify-center h-full text-center px-4">
+                <div className="text-[var(--color-sepia)]">
+                  {/* <svg className="w-16 h-16 mx-auto mb-4 opacity-40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129" />
+                  </svg> */}
+
+                    <svg className="w-16 h-16 mx-auto mb-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                    <span className="text-sm font-medium">Translating...</span>
+                </div>
+              </div>
+            ) :
+              translation ? (
               <TranslationResult translation={translation} onClose={handleCloseTranslation} hoveredIndex={hoveredIndex} />
             ) : (
               <div className="flex items-center justify-center h-full text-center px-4">
@@ -291,7 +301,7 @@ export function ReadingView() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129" />
                   </svg>
                   <p className="text-sm font-medium mb-2">Select text to translate</p>
-                  <p className="text-xs opacity-75">Highlight any text in the reading panel and click the Translate button</p>
+                  <p className="text-xs opacity-75">Highlight any text in the reading panel and click the Translate button!</p>
                 </div>
               </div>
             )}
