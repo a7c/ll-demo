@@ -73,12 +73,23 @@ export function ReadingView() {
         const range = selection?.getRangeAt(0);
         const rect = range?.getBoundingClientRect();
         
-        if (rect) {
+        // Only show tooltip if selection is within reading panel
+        const panelRect = readingPanelRef.current.getBoundingClientRect();
+        const isWithinPanel = rect && 
+          rect.left >= panelRect.left &&
+          rect.right <= panelRect.right &&
+          rect.top >= panelRect.top &&
+          rect.bottom <= panelRect.bottom;
+        
+        if (rect && isWithinPanel) {
           setSelectedText(text);
           setTooltipPosition({
             x: rect.left + rect.width / 2,
             y: rect.top - 10
           });
+        } else {
+          setSelectedText('');
+          setTooltipPosition(null);
         }
       } else {
         setSelectedText('');
@@ -296,11 +307,13 @@ export function ReadingView() {
               transform: 'translate(-50%, -100%)'
             }}
           >
-            <div className="bg-[var(--color-ink)] text-white px-4 py-2 rounded-lg shadow-xl flex items-center gap-2">
-              <button
-                onClick={handleTranslate}
-                disabled={isTranslating}
-                className="flex items-center gap-2 hover:text-[var(--color-amber-light)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            <button 
+              onClick={handleTranslate}
+              disabled={isTranslating}
+              className="bg-[var(--color-ink)] text-white px-4 py-2 rounded-lg shadow-xl flex items-center gap-2 cursor-pointer hover:text-[var(--color-amber-light)] transition-colors"
+            >
+              <div
+                className="flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isTranslating ? (
                   <>
@@ -317,8 +330,8 @@ export function ReadingView() {
                     <span className="text-sm font-medium">Translate</span>
                   </>
                 )}
-              </button>
-            </div>
+              </div>
+            </button>
             {/* Tooltip arrow */}
             <div className="absolute left-1/2 -translate-x-1/2 top-full w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-t-[6px] border-t-[var(--color-ink)]" />
           </div>

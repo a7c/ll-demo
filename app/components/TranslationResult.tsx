@@ -65,7 +65,7 @@ export function TranslationResult({
   );
 
   return (
-    <div className="animate-fadeIn flex flex-col h-full">
+    <div className="animate-fadeIn">
       {/* Header with close button */}
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-sm font-semibold text-[var(--color-sepia)] uppercase tracking-wider">

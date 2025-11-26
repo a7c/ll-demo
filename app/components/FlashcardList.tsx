@@ -26,7 +26,7 @@ export function FlashcardList({ flashcards, type, onDelete, onUpdate, onStartRev
   }
 
   return (
-    <div className="animate-fadeIn">
+    <div className="animate-fadeIn flex flex-col h-full">
       {/* Header */}
       <div className="mb-4">
         <h3 className="text-sm font-semibold text-[var(--color-sepia)] uppercase tracking-wider flex items-center gap-2">
@@ -38,8 +38,8 @@ export function FlashcardList({ flashcards, type, onDelete, onUpdate, onStartRev
       </div>
 
       {/* Flashcard Grid */}
-      <div className="space-y-3">
-        {flashcards.map((flashcard) => {          
+      <div className="space-y-3 flex-1 overflow-y-auto">
+        {flashcards.map((flashcard) => {            
           return (
             <FlashcardCard
               key={flashcard.id}
@@ -53,7 +53,7 @@ export function FlashcardList({ flashcards, type, onDelete, onUpdate, onStartRev
       </div>
 
       {/* Study Actions */}
-      <div className="mt-6 pt-4 border-t border-[var(--color-border)]">
+      <div className="pt-4">
         <div className="flex gap-2">
           <button 
             onClick={onStartReview}

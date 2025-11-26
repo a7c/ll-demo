@@ -14,7 +14,6 @@ function indexOfIgnoreCase(text: string, search: string): number {
 }
 
 export function HighlightedText({ text, translation, previousTranslations = [], onHoverChange }: HighlightedTextProps) {
-  console.log(previousTranslations);
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
   const [clickedIndices, setClickedIndices] = useState<Set<number>>(new Set());
 
@@ -130,7 +129,7 @@ export function HighlightedText({ text, translation, previousTranslations = [], 
       <span
         key={chunkKey}
         onMouseUp={() => isCurrent && handleClick(chunkIndex)}
-        className={`inline-block px-2 py-0.5 rounded-md font-medium transition-all duration-200 ${isCurrent ? 'cursor-grab active:cursor-grabbing' : 'cursor-default'} ${isClicked ? 'font-sans' : ''}`}
+        className={`inline-block px-2 py-0.5 rounded-md font-medium transition-all duration-200 ${isCurrent ? 'cursor-pointer' : 'cursor-default'} ${isClicked ? 'font-sans' : ''}`}
         style={{
           backgroundColor: isHovered
             ? color
