@@ -44,12 +44,24 @@ export function HighlightedText({ text, translation, onHoverChange }: Highlighte
       );
     }
 
-    // Add the highlighted chunk as a pill
+    // Add the highlighted chunk as a draggable pill
     const isHovered = hoveredIndex === index;
+    const chunkTranslation = translation.chunkPairs[index].translation;
+    
+    const handleDragStart = (e: React.DragEvent) => {
+      e.dataTransfer.effectAllowed = 'copy';
+      e.dataTransfer.setData('application/json', JSON.stringify({
+        targetWord: chunk,
+        translation: chunkTranslation
+      }));
+    };
+
     parts.push(
       <span
         key={`chunk-${index}`}
-        className="inline-block px-2 py-0.5 rounded-md font-medium transition-all duration-200 cursor-pointer"
+        draggable
+        onDragStart={handleDragStart}
+        className="inline-block px-2 py-0.5 rounded-md font-medium transition-all duration-200 cursor-grab active:cursor-grabbing"
         style={{
           backgroundColor: isHovered
             ? colors[index]

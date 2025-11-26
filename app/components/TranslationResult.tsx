@@ -1,5 +1,9 @@
+import { useState } from 'react';
 import type { TranslationResponse } from '../routes/api.translate';
 import { generateChunkColors, getColorWithOpacity } from '../utils/colors';
+import { DropZone } from './DropZone';
+import { FlashcardEditor } from './FlashcardEditor';
+import type { DraftFlashcard, Flashcard } from '../types/flashcard';
 
 interface TranslationResultProps {
   translation: TranslationResponse;
@@ -69,8 +73,34 @@ function renderTextWithHighlights(
 }
 
 export function TranslationResult({ translation, onClose, hoveredIndex }: TranslationResultProps) {
+  const [draftFlashcard, setDraftFlashcard] = useState<DraftFlashcard | null>(null);
+  const [savedFlashcards, setSavedFlashcards] = useState<Flashcard[]>([]);
+  
   const colors = generateChunkColors(translation.chunkPairs.length);
   const translationChunks = translation.chunkPairs.map(pair => pair.translation);
+
+  const handleDrop = (targetWord: string, translation: string) => {
+    setDraftFlashcard({ targetWord, translation });
+  };
+
+  const handleSaveFlashcard = (flashcard: DraftFlashcard) => {
+    const newFlashcard: Flashcard = {
+      id: Date.now().toString(),
+      targetWord: flashcard.targetWord,
+      translation: flashcard.translation,
+      createdAt: Date.now(),
+    };
+    setSavedFlashcards([...savedFlashcards, newFlashcard]);
+    setDraftFlashcard(null);
+  };
+
+  const handleCancelFlashcard = () => {
+    setDraftFlashcard(null);
+  };
+
+  const handleDeleteFlashcard = (id: string) => {
+    setSavedFlashcards(savedFlashcards.filter(f => f.id !== id));
+  };
   return (
     <div className="animate-fadeIn">
       {/* Header with close button */}
@@ -114,6 +144,52 @@ export function TranslationResult({ translation, onClose, hoveredIndex }: Transl
           )}
         </p>
       </div>
+
+      {/* Saved Flashcards */}
+      {savedFlashcards.length > 0 && (
+        <div className="mb-4">
+          <h4 className="text-xs font-semibold text-[var(--color-sepia)] uppercase tracking-wider mb-3">
+            Saved Flashcards ({savedFlashcards.length})
+          </h4>
+          <div className="space-y-2">
+            {savedFlashcards.map((flashcard) => (
+              <div
+                key={flashcard.id}
+                className="bg-white rounded-lg p-3 shadow-sm border border-[var(--color-border)] flex items-start justify-between gap-3 hover:shadow-md transition-shadow"
+              >
+                <div className="flex-1 min-w-0">
+                  <div className="font-serif text-base text-[var(--color-ink)] font-medium mb-1 truncate">
+                    {flashcard.targetWord}
+                  </div>
+                  <div className="text-sm text-[var(--color-ink-light)] truncate">
+                    {flashcard.translation}
+                  </div>
+                </div>
+                <button
+                  onClick={() => handleDeleteFlashcard(flashcard.id)}
+                  className="text-[var(--color-sepia)] hover:text-red-500 transition-colors flex-shrink-0"
+                  aria-label="Delete flashcard"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Flashcard Editor or Drop Zone */}
+      {draftFlashcard ? (
+        <FlashcardEditor
+          draft={draftFlashcard}
+          onSave={handleSaveFlashcard}
+          onCancel={handleCancelFlashcard}
+        />
+      ) : (
+        <DropZone onDrop={handleDrop} />
+      )}
     </div>
   );
 }

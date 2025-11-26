@@ -64,6 +64,8 @@ export async function action({ request }: { request: Request }) {
       );
     }
 
+
+    // TODO: Provide more context for the translation.
     const message = await anthropic.messages.create({
       model: 'claude-sonnet-4-20250514',
       max_tokens: 2000,
