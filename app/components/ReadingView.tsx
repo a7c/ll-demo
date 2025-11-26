@@ -54,6 +54,7 @@ export function ReadingView() {
   const [customText, setCustomText] = useState<CustomText>(DEFAULT_TEXT);
   const [savedFlashcards, setSavedFlashcards] = useState<Flashcard[]>([]);
   const [partialTranslation, setPartialTranslation] = useState<PartialTranslation | null>(null);
+  const [previousTranslations, setPreviousTranslations] = useState<TranslationResponse[]>([]);
   const containerRef = useRef<HTMLDivElement>(null);
   const readingPanelRef = useRef<HTMLDivElement>(null);
 
@@ -130,6 +131,7 @@ export function ReadingView() {
   const handleTranslate = async () => {
     if (!selectedText || isTranslating) return;
 
+    saveTranslation();
     setIsTranslating(true);
     setTooltipPosition(null);
     setTranslation(null);
@@ -203,7 +205,14 @@ export function ReadingView() {
     }
   };
 
+  const saveTranslation = () => {
+    if (translation) {
+      setPreviousTranslations(prev => [translation, ...prev].slice(0, 10)); // Keep last 10 translations
+    }
+  };
+
   const handleCloseTranslation = () => {
+    saveTranslation();
     setTranslation(null);
   };
 
@@ -359,6 +368,7 @@ export function ReadingView() {
                         }
                         : translation
                     }
+                    previousTranslations={previousTranslations}
                     onHoverChange={setHoveredIndex}
                   />
                 </p>

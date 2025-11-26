@@ -5,6 +5,7 @@ import { generateChunkColors, getColorWithOpacity } from '../utils/colors';
 interface HighlightedTextProps {
   text: string;
   translation: TranslationResponse | null;
+  previousTranslations?: TranslationResponse[];
   onHoverChange?: (index: number | null) => void;
 }
 
@@ -12,7 +13,8 @@ function indexOfIgnoreCase(text: string, search: string): number {
   return text.toLowerCase().indexOf(search.toLowerCase());
 }
 
-export function HighlightedText({ text, translation, onHoverChange }: HighlightedTextProps) {
+export function HighlightedText({ text, translation, previousTranslations = [], onHoverChange }: HighlightedTextProps) {
+  console.log(previousTranslations);
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
   const [clickedIndices, setClickedIndices] = useState<Set<number>>(new Set());
 
@@ -33,58 +35,82 @@ export function HighlightedText({ text, translation, onHoverChange }: Highlighte
     });
   };
 
-  // If no translation, render plain text
-  if (!translation) {
+  // If no translation, check for previous translations
+  if (!translation && previousTranslations.length === 0) {
     return <>{text}</>;
   }
 
-  // find original text position
-  const translationStartPos = indexOfIgnoreCase(text, translation.original);
-  if (translationStartPos === -1) {
-    // This paragraph doesn't contain the translated text
-    return <>{text}</>;
+  // Combine current and previous translations
+  const allTranslations = translation ? [translation, ...previousTranslations] : previousTranslations;
+
+  // Build a map of all chunks with their metadata
+  interface ChunkInfo {
+    chunk: string;
+    chunkIndex: number;
+    translationIndex: number;
+    absolutePos: number;
+    color: string;
+    translation: string;
+    isCurrent: boolean;
   }
 
-  const colors = generateChunkColors(translation.chunkPairs.length);
-  const chunks = translation.chunkPairs.map(pair => pair.original);
+  const allChunks: ChunkInfo[] = [];
 
-  // sort chunks by their position in original text
-  const sortedChunks = chunks
-    .map((chunk, index) => {
-      const pos = indexOfIgnoreCase(translation.original, chunk);
-      return {
-        chunk,
-        index,
-        pos,
-        absolutePos: pos !== -1 ? translationStartPos + pos : -1
-      };
+  allTranslations.forEach((trans, transIndex) => {
+    const isCurrent = transIndex === 0;
+    const translationStartPos = indexOfIgnoreCase(text, trans.original);
+    
+    if (translationStartPos === -1) {
+      return; // Skip if this translation isn't in this paragraph
+    }
+
+    const colors = generateChunkColors(trans.chunkPairs.length);
+    
+    trans.chunkPairs.forEach((pair, chunkIndex) => {
+      const pos = indexOfIgnoreCase(trans.original, pair.original);
+      if (pos !== -1) {
+        allChunks.push({
+          chunk: pair.original,
+          chunkIndex,
+          translationIndex: transIndex,
+          absolutePos: translationStartPos + pos,
+          color: colors[chunkIndex],
+          translation: pair.translation,
+          isCurrent
+        });
+      }
+    });
+  });
+
+  // Sort chunks by position and remove overlaps (prefer current translation)
+  const sortedChunks = allChunks
+    .sort((a, b) => {
+      if (a.absolutePos !== b.absolutePos) {
+        return a.absolutePos - b.absolutePos;
+      }
+      // If same position, prefer current translation
+      return a.isCurrent ? -1 : 1;
     })
-    .filter(item => item.pos !== -1)
-    .sort((a, b) => a.absolutePos - b.absolutePos);
+    .filter((chunk, index, arr) => {
+      // Remove overlapping chunks
+      if (index === 0) return true;
+      const prev = arr[index - 1];
+      const prevEnd = prev.absolutePos + prev.chunk.length;
+      return chunk.absolutePos >= prevEnd;
+    });
 
   const parts: React.ReactNode[] = [];
-  let lastIndex = 0;
+  let lastPos = 0;
   let globalIndex = 0;
 
-  // Add text before the translated section
-  if (translationStartPos > 0) {
-    parts.push(
-      <span key={`text-${globalIndex++}`}>
-        {text.slice(0, translationStartPos)}
-      </span>
-    );
-  }
-
-  // Render the translated section with pills
-  const translationEndPos = translationStartPos + translation.original.length;
-  let lastPosInTranslation = translationStartPos;
-
-  sortedChunks.forEach(({ chunk, index, absolutePos }) => {
-    // Add text before this chunk (within the translated section)
-    if (absolutePos > lastPosInTranslation) {
+  sortedChunks.forEach((chunkInfo) => {
+    const { chunk, chunkIndex, translationIndex, absolutePos, color, translation: chunkTranslation, isCurrent } = chunkInfo;
+    
+    // Add text before this chunk
+    if (absolutePos > lastPos) {
       parts.push(
         <span key={`text-${globalIndex++}`}>
-          {text.slice(lastPosInTranslation, absolutePos)}
+          {text.slice(lastPos, absolutePos)}
         </span>
       );
     }
@@ -92,47 +118,42 @@ export function HighlightedText({ text, translation, onHoverChange }: Highlighte
     // get original text w/ case preserved
     const originalText = text.slice(absolutePos, absolutePos + chunk.length);
 
-    // Add the highlighted chunk as a pill
-    const isHovered = hoveredIndex === index;
-    const isClicked = clickedIndices.has(index);
-    const chunkTranslation = translation.chunkPairs[index].translation;
+    // Create unique key for this chunk
+    const chunkKey = `chunk-${translationIndex}-${chunkIndex}`;
+    const isHovered = hoveredIndex === chunkIndex && isCurrent;
+    const isClicked = clickedIndices.has(chunkIndex) && isCurrent;
+
+    // Determine opacity based on whether it's current or previous
+    const baseOpacity = isCurrent ? 0.25 : 0.12;
 
     parts.push(
       <span
-        key={`chunk-${index}`}
-        onMouseUp={() => handleClick(index)}
-        className={`inline-block px-2 py-0.5 rounded-md font-medium transition-all duration-200 cursor-grab active:cursor-grabbing ${isClicked ? 'font-sans' : ''}`}
+        key={chunkKey}
+        onMouseUp={() => isCurrent && handleClick(chunkIndex)}
+        className={`inline-block px-2 py-0.5 rounded-md font-medium transition-all duration-200 ${isCurrent ? 'cursor-grab active:cursor-grabbing' : 'cursor-default'} ${isClicked ? 'font-sans' : ''}`}
         style={{
           backgroundColor: isHovered
-            ? colors[index]
-            : getColorWithOpacity(colors[index], 0.25),
+            ? color
+            : getColorWithOpacity(color, baseOpacity),
           color: isHovered ? 'white' : 'inherit',
           transform: isHovered ? 'scale(1.05)' : 'scale(1)',
+          opacity: isCurrent ? 1 : 0.6,
         }}
-        onMouseEnter={() => handleHover(index)}
-        onMouseLeave={() => handleHover(null)}
+        onMouseEnter={() => isCurrent && handleHover(chunkIndex)}
+        onMouseLeave={() => isCurrent && handleHover(null)}
       >
         {isClicked ? chunkTranslation : originalText}
       </span>
     );
 
-    lastPosInTranslation = absolutePos + chunk.length;
+    lastPos = absolutePos + chunk.length;
   });
 
-  // Add remaining text within the translated section
-  if (lastPosInTranslation < translationEndPos) {
+  // Add remaining text after all chunks
+  if (lastPos < text.length) {
     parts.push(
       <span key={`text-${globalIndex++}`}>
-        {text.slice(lastPosInTranslation, translationEndPos)}
-      </span>
-    );
-  }
-
-  // Add text after the translated section
-  if (translationEndPos < text.length) {
-    parts.push(
-      <span key={`text-${globalIndex++}`}>
-        {text.slice(translationEndPos)}
+        {text.slice(lastPos)}
       </span>
     );
   }
