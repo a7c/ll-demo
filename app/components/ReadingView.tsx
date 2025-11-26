@@ -278,7 +278,7 @@ export function ReadingView() {
         <div className="flex items-center gap-4">
           <button 
             onClick={() => setIsUploadModalOpen(true)}
-            className="px-4 py-2 text-sm font-medium bg-[var(--color-accent)] text-white rounded-lg hover:bg-[var(--color-accent-dark)] transition-all shadow-sm hover:shadow-md">
+            className="px-4 py-2 text-sm font-medium bg-[var(--color-accent)] text-white rounded-lg cursor-pointer hover:bg-[var(--color-accent-dark)] transition-all shadow-sm hover:shadow-md">
             Upload new text
           </button>
         </div>

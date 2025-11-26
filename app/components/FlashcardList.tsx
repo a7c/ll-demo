@@ -57,8 +57,7 @@ export function FlashcardList({ flashcards, type, onDelete, onUpdate, onStartRev
         <div className="flex gap-2">
           <button 
             onClick={onStartReview}
-            className="flex-1 px-4 py-2 bg-gradient-to-br from-[var(--color-accent)] to-[var(--color-accent-dark)] text-white rounded-lg font-medium hover:shadow-md transition-all text-sm"
-          >
+            className="flex-1 px-4 py-2 text-sm font-medium bg-[var(--color-accent)] text-white rounded-lg cursor-pointer hover:bg-[var(--color-accent-dark)] transition-all shadow-sm hover:shadow-md">
             Study All
           </button>
           <button className="px-4 py-2 border border-[var(--color-border)] text-[var(--color-ink-light)] rounded-lg font-medium hover:bg-[var(--color-parchment)] transition-colors text-sm">
