@@ -1,4 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
+import { TranslationResult } from './TranslationResult';
+import type { TranslationResponse } from '../routes/api.translate';
 
 interface TooltipPosition {
   x: number;
@@ -10,6 +12,8 @@ export function ReadingView() {
   const [isResizing, setIsResizing] = useState(false);
   const [selectedText, setSelectedText] = useState('');
   const [tooltipPosition, setTooltipPosition] = useState<TooltipPosition | null>(null);
+  const [translation, setTranslation] = useState<TranslationResponse | null>(null);
+  const [isTranslating, setIsTranslating] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const readingPanelRef = useRef<HTMLDivElement>(null);
 
@@ -83,10 +87,37 @@ export function ReadingView() {
     };
   }, [isResizing]);
 
-  const handleTranslate = () => {
-    console.log('Translating:', selectedText);
-    // Translation logic will be implemented later
-    // For now, just log the selected text
+  const handleTranslate = async () => {
+    if (!selectedText || isTranslating) return;
+
+    setIsTranslating(true);
+    setTooltipPosition(null); // Hide tooltip while translating
+
+    try {
+      const response = await fetch('/api/translate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ text: selectedText }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Translation failed');
+      }
+
+      const data: TranslationResponse = await response.json();
+      setTranslation(data);
+    } catch (error) {
+      console.error('Translation error:', error);
+      alert('Translation failed. Please try again.');
+    } finally {
+      setIsTranslating(false);
+    }
+  };
+
+  const handleCloseTranslation = () => {
+    setTranslation(null);
   };
 
   return (
@@ -127,12 +158,24 @@ export function ReadingView() {
             <div className="bg-[var(--color-ink)] text-white px-4 py-2 rounded-lg shadow-xl flex items-center gap-2">
               <button
                 onClick={handleTranslate}
-                className="flex items-center gap-2 hover:text-[var(--color-amber-light)] transition-colors"
+                disabled={isTranslating}
+                className="flex items-center gap-2 hover:text-[var(--color-amber-light)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129" />
-                </svg>
-                <span className="text-sm font-medium">Translate</span>
+                {isTranslating ? (
+                  <>
+                    <svg className="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                    <span className="text-sm font-medium">Translating...</span>
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129" />
+                    </svg>
+                    <span className="text-sm font-medium">Translate</span>
+                  </>
+                )}
               </button>
             </div>
             {/* Tooltip arrow */}
@@ -222,93 +265,19 @@ export function ReadingView() {
 
           {/* Sidebar Content */}
           <div className="flex-1 overflow-y-auto p-6">
-            <div className="mb-6">
-              <h3 className="text-sm font-semibold text-[var(--color-sepia)] uppercase tracking-wider mb-4">
-                Learning Tools
-              </h3>
-              
-              {/* Vocabulary Section */}
-              <div className="bg-white rounded-xl p-5 shadow-sm border border-[var(--color-border)] mb-4 hover:shadow-md transition-shadow">
-                <h4 className="font-semibold text-[var(--color-ink)] mb-3 flex items-center gap-2">
-                  <svg className="w-5 h-5 text-[var(--color-accent)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+            {translation ? (
+              <TranslationResult translation={translation} onClose={handleCloseTranslation} />
+            ) : (
+              <div className="flex items-center justify-center h-full text-center px-4">
+                <div className="text-[var(--color-sepia)]">
+                  <svg className="w-16 h-16 mx-auto mb-4 opacity-40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129" />
                   </svg>
-                  Vocabulary
-                </h4>
-                <div className="space-y-3">
-                  <div className="pb-3 border-b border-[var(--color-border)] last:border-0 last:pb-0">
-                    <div className="font-serif text-lg text-[var(--color-ink)] mb-1">magnifique</div>
-                    <div className="text-sm text-[var(--color-sepia)] italic mb-1">adjective</div>
-                    <div className="text-sm text-[var(--color-ink-light)]">magnificent, wonderful</div>
-                  </div>
-                  <div className="pb-3 border-b border-[var(--color-border)] last:border-0 last:pb-0">
-                    <div className="font-serif text-lg text-[var(--color-ink)] mb-1">avaler</div>
-                    <div className="text-sm text-[var(--color-sepia)] italic mb-1">verb</div>
-                    <div className="text-sm text-[var(--color-ink-light)]">to swallow</div>
-                  </div>
-                  <div className="pb-3 border-b border-[var(--color-border)] last:border-0 last:pb-0">
-                    <div className="font-serif text-lg text-[var(--color-ink)] mb-1">réfléchi</div>
-                    <div className="text-sm text-[var(--color-sepia)] italic mb-1">verb (past participle)</div>
-                    <div className="text-sm text-[var(--color-ink-light)]">thought about, reflected</div>
-                  </div>
+                  <p className="text-sm font-medium mb-2">Select text to translate</p>
+                  <p className="text-xs opacity-75">Highlight any text in the reading panel and click the Translate button</p>
                 </div>
               </div>
-
-              {/* Grammar Notes */}
-              <div className="bg-white rounded-xl p-5 shadow-sm border border-[var(--color-border)] mb-4 hover:shadow-md transition-shadow">
-                <h4 className="font-semibold text-[var(--color-ink)] mb-3 flex items-center gap-2">
-                  <svg className="w-5 h-5 text-[var(--color-accent)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                  </svg>
-                  Grammar Notes
-                </h4>
-                <div className="space-y-3 text-sm">
-                  <div className="bg-[var(--color-parchment)] rounded-lg p-3">
-                    <div className="font-medium text-[var(--color-ink)] mb-1">Imparfait Tense</div>
-                    <div className="text-[var(--color-ink-light)]">
-                      "Lorsque j'avais six ans" - Uses imparfait to describe a past state or habitual action
-                    </div>
-                  </div>
-                  <div className="bg-[var(--color-parchment)] rounded-lg p-3">
-                    <div className="font-medium text-[var(--color-ink)] mb-1">Passé Composé</div>
-                    <div className="text-[var(--color-ink-light)]">
-                      "j'ai vu" - Completed action in the past
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Progress */}
-              <div className="bg-white rounded-xl p-5 shadow-sm border border-[var(--color-border)] hover:shadow-md transition-shadow">
-                <h4 className="font-semibold text-[var(--color-ink)] mb-3 flex items-center gap-2">
-                  <svg className="w-5 h-5 text-[var(--color-accent)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                  </svg>
-                  Reading Progress
-                </h4>
-                <div className="space-y-3">
-                  <div>
-                    <div className="flex justify-between text-sm mb-2">
-                      <span className="text-[var(--color-ink-light)]">Chapter Progress</span>
-                      <span className="font-medium text-[var(--color-accent)]">35%</span>
-                    </div>
-                    <div className="h-2 bg-[var(--color-border)] rounded-full overflow-hidden">
-                      <div className="h-full bg-gradient-to-r from-[var(--color-accent)] to-[var(--color-accent-dark)] rounded-full transition-all duration-500" style={{ width: '35%' }} />
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-3 pt-2">
-                    <div className="text-center p-3 bg-[var(--color-parchment)] rounded-lg">
-                      <div className="text-2xl font-semibold text-[var(--color-accent)]">24</div>
-                      <div className="text-xs text-[var(--color-sepia)]">Words Learned</div>
-                    </div>
-                    <div className="text-center p-3 bg-[var(--color-parchment)] rounded-lg">
-                      <div className="text-2xl font-semibold text-[var(--color-accent)]">12</div>
-                      <div className="text-xs text-[var(--color-sepia)]">Minutes Read</div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
+            )}
           </div>
         </aside>
       </div>
