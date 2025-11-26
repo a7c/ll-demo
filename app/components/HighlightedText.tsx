@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import type { TranslationResponse } from '../routes/api.translate';
 import { generateChunkColors, getColorWithOpacity } from '../utils/colors';
 
@@ -7,15 +7,21 @@ interface HighlightedTextProps {
   translation: TranslationResponse | null;
   previousTranslations?: TranslationResponse[];
   onHoverChange?: (index: number | null) => void;
+  renderParagraphs?: boolean;
 }
 
 function indexOfIgnoreCase(text: string, search: string): number {
   return text.toLowerCase().indexOf(search.toLowerCase());
 }
 
-export function HighlightedText({ text, translation, previousTranslations = [], onHoverChange }: HighlightedTextProps) {
+export function HighlightedText({ text, translation, previousTranslations = [], onHoverChange, renderParagraphs = true }: HighlightedTextProps) {
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
   const [clickedIndices, setClickedIndices] = useState<Set<number>>(new Set());
+
+  useEffect(() => {
+    // clear toggled chunks upon translation change
+    setClickedIndices(new Set());
+  }, [translation]);
 
   const handleHover = (index: number | null) => {
     setHoveredIndex(index);
@@ -98,64 +104,101 @@ export function HighlightedText({ text, translation, previousTranslations = [], 
       return chunk.absolutePos >= prevEnd;
     });
 
-  const parts: React.ReactNode[] = [];
-  let lastPos = 0;
-  let globalIndex = 0;
+  // Build highlighted parts for the entire text
+  const buildHighlightedParts = (content: string, startOffset: number = 0): React.ReactNode[] => {
+    const parts: React.ReactNode[] = [];
+    let lastPos = 0;
+    let globalIndex = 0;
 
-  sortedChunks.forEach((chunkInfo) => {
-    const { chunk, chunkIndex, translationIndex, absolutePos, color, translation: chunkTranslation, isCurrent } = chunkInfo;
-    
-    // Add text before this chunk
-    if (absolutePos > lastPos) {
+    // Filter chunks that are within this content range
+    const relevantChunks = sortedChunks.filter(
+      chunk => chunk.absolutePos >= startOffset && chunk.absolutePos < startOffset + content.length
+    );
+
+    relevantChunks.forEach((chunkInfo) => {
+      const { chunk, chunkIndex, translationIndex, absolutePos, color, translation: chunkTranslation, isCurrent } = chunkInfo;
+      const relativePos = absolutePos - startOffset;
+      
+      // Add text before this chunk
+      if (relativePos > lastPos) {
+        parts.push(
+          <span key={`text-${startOffset}-${globalIndex++}`}>
+            {content.slice(lastPos, relativePos)}
+          </span>
+        );
+      }
+
+      // get original text w/ case preserved
+      const originalText = content.slice(relativePos, relativePos + chunk.length);
+
+      // Create unique key for this chunk
+      const chunkKey = `chunk-${translationIndex}-${chunkIndex}-${startOffset}`;
+      const isHovered = hoveredIndex === chunkIndex && isCurrent;
+      const isClicked = clickedIndices.has(chunkIndex) && isCurrent;
+
+      // Determine opacity based on whether it's current or previous
+      const baseOpacity = isCurrent ? 0.25 : 0.12;
+
       parts.push(
-        <span key={`text-${globalIndex++}`}>
-          {text.slice(lastPos, absolutePos)}
+        <span
+          key={chunkKey}
+          onMouseUp={() => isCurrent && handleClick(chunkIndex)}
+          className={`inline-block px-2 py-0.5 rounded-md font-medium transition-all duration-200 ${isCurrent ? 'cursor-pointer' : 'cursor-default'} ${isClicked ? 'font-sans' : ''}`}
+          style={{
+            backgroundColor: isHovered
+              ? color
+              : getColorWithOpacity(color, baseOpacity),
+            color: isHovered ? 'white' : 'inherit',
+            transform: isHovered ? 'scale(1.05)' : 'scale(1)',
+            opacity: isCurrent ? 1 : 0.6,
+          }}
+          onMouseEnter={() => isCurrent && handleHover(chunkIndex)}
+          onMouseLeave={() => isCurrent && handleHover(null)}
+        >
+          {isClicked ? chunkTranslation : originalText}
+        </span>
+      );
+
+      lastPos = relativePos + chunk.length;
+    });
+
+    // Add remaining text after all chunks
+    if (lastPos < content.length) {
+      parts.push(
+        <span key={`text-${startOffset}-${globalIndex++}`}>
+          {content.slice(lastPos)}
         </span>
       );
     }
 
-    // get original text w/ case preserved
-    const originalText = text.slice(absolutePos, absolutePos + chunk.length);
+    return parts;
+  };
 
-    // Create unique key for this chunk
-    const chunkKey = `chunk-${translationIndex}-${chunkIndex}`;
-    const isHovered = hoveredIndex === chunkIndex && isCurrent;
-    const isClicked = clickedIndices.has(chunkIndex) && isCurrent;
-
-    // Determine opacity based on whether it's current or previous
-    const baseOpacity = isCurrent ? 0.25 : 0.12;
-
-    parts.push(
-      <span
-        key={chunkKey}
-        onMouseUp={() => isCurrent && handleClick(chunkIndex)}
-        className={`inline-block px-2 py-0.5 rounded-md font-medium transition-all duration-200 ${isCurrent ? 'cursor-pointer' : 'cursor-default'} ${isClicked ? 'font-sans' : ''}`}
-        style={{
-          backgroundColor: isHovered
-            ? color
-            : getColorWithOpacity(color, baseOpacity),
-          color: isHovered ? 'white' : 'inherit',
-          transform: isHovered ? 'scale(1.05)' : 'scale(1)',
-          opacity: isCurrent ? 1 : 0.6,
-        }}
-        onMouseEnter={() => isCurrent && handleHover(chunkIndex)}
-        onMouseLeave={() => isCurrent && handleHover(null)}
-      >
-        {isClicked ? chunkTranslation : originalText}
-      </span>
-    );
-
-    lastPos = absolutePos + chunk.length;
-  });
-
-  // Add remaining text after all chunks
-  if (lastPos < text.length) {
-    parts.push(
-      <span key={`text-${globalIndex++}`}>
-        {text.slice(lastPos)}
-      </span>
-    );
+  // If not rendering paragraphs, just return the highlighted text
+  if (!renderParagraphs) {
+    return <>{buildHighlightedParts(text, 0)}</>;
   }
 
-  return <>{parts}</>;
+  // Split into paragraphs and render each with highlighting
+  const paragraphs = text.split('\n\n');
+  let currentOffset = 0;
+
+  return (
+    <>
+      {paragraphs.map((paragraph, index) => {
+        const parts = buildHighlightedParts(paragraph, currentOffset);
+        const offset = currentOffset;
+        currentOffset += paragraph.length + 2; // +2 for \n\n
+
+        return (
+          <p
+            key={`para-${index}`}
+            className={index === 0 ? "first-letter:text-6xl first-letter:font-semibold first-letter:text-[var(--color-accent)] first-letter:float-left first-letter:mr-3 first-letter:mt-1 first-letter:leading-none" : ""}
+          >
+            {parts}
+          </p>
+        );
+      })}
+    </>
+  );
 }

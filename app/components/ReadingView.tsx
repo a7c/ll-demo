@@ -362,30 +362,24 @@ export function ReadingView() {
             </div>
 
             <div className="prose prose-lg font-serif text-[var(--color-ink-light)] leading-relaxed space-y-6">
-              {customText.content.split('\n\n').map((paragraph, index) => (
-                <p 
-                  key={index}
-                  className={index === 0 ? "first-letter:text-6xl first-letter:font-semibold first-letter:text-[var(--color-accent)] first-letter:float-left first-letter:mr-3 first-letter:mt-1 first-letter:leading-none" : ""}
-                >
-                  <HighlightedText
-                    text={paragraph}
-                    translation={
-                      // use partial translation if we're translating
-                      isTranslating && partialTranslation
-                        ? {
-                          original: partialTranslation.original,
-                          naturalTranslation: partialTranslation.naturalTranslation || '',
-                          directTranslation: partialTranslation.directTranslation || '',
-                          chunkPairs: partialTranslation.chunkPairs,
-                          literalParts: partialTranslation.literalParts,
-                        }
-                        : translation
+              <HighlightedText
+                text={customText.content}
+                translation={
+                  // use partial translation if we're translating
+                  isTranslating && partialTranslation
+                    ? {
+                      original: partialTranslation.original,
+                      naturalTranslation: partialTranslation.naturalTranslation || '',
+                      directTranslation: partialTranslation.directTranslation || '',
+                      chunkPairs: partialTranslation.chunkPairs,
+                      literalParts: partialTranslation.literalParts,
                     }
-                    previousTranslations={previousTranslations}
-                    onHoverChange={setHoveredIndex}
-                  />
-                </p>
-              ))}
+                    : translation
+                }
+                previousTranslations={previousTranslations}
+                onHoverChange={setHoveredIndex}
+                renderParagraphs={true}
+              />
             </div>
           </article>
         </main>
