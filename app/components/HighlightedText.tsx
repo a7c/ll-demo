@@ -50,7 +50,6 @@ export function HighlightedText({ text, translation, previousTranslations = [], 
         {paragraphs.map((paragraph, index) => (
           <p
             key={`para-${index}`}
-            className={index === 0 ? "first-letter:text-6xl first-letter:font-semibold first-letter:text-[var(--color-accent)] first-letter:float-left first-letter:mr-3 first-letter:mt-1 first-letter:leading-none" : ""}
           >
             {paragraph}
           </p>
@@ -185,7 +184,7 @@ export function HighlightedText({ text, translation, previousTranslations = [], 
 
     return parts;
   };
-  
+
   // Split into paragraphs and render each with highlighting
   const paragraphs = text.split('\n\n');
   let currentOffset = 0;
@@ -194,13 +193,11 @@ export function HighlightedText({ text, translation, previousTranslations = [], 
     <>
       {paragraphs.map((paragraph, index) => {
         const parts = buildHighlightedParts(paragraph, currentOffset);
-        const offset = currentOffset;
         currentOffset += paragraph.length + 2; // +2 for \n\n
 
         return (
           <p
             key={`para-${index}`}
-            className={index === 0 ? "first-letter:text-6xl first-letter:font-semibold first-letter:text-[var(--color-accent)] first-letter:float-left first-letter:mr-3 first-letter:mt-1 first-letter:leading-none" : ""}
           >
             {parts}
           </p>
