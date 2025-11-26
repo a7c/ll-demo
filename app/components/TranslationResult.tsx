@@ -121,8 +121,8 @@ export function TranslationResult({ translation, onClose, hoveredIndex }: Transl
 
 
       {/* Natural Translation */}
-      <div className="bg-gradient-to-br from-[var(--color-accent)] to-[var(--color-accent-dark)] rounded-xl p-5 shadow-md mb-4 text-white">
-        <h4 className="text-xs font-semibold uppercase tracking-wider mb-2 opacity-90">
+      <div className="bg-white rounded-xl p-5 shadow-sm border border-[var(--color-border)] mb-4">
+        <h4 className="text-xs font-semibold text-[var(--color-sepia)] uppercase tracking-wider mb-2">
           Natural Translation
         </h4>
         <p className="text-lg leading-relaxed font-medium">

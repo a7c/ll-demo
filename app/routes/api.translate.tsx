@@ -79,14 +79,16 @@ Text to translate: "${text}"
 Please provide:
 1. The original text (echo it back)
 2. A natural, idiomatic English translation that reads smoothly and naturally
-3. A direct, literal translation that preserves the original structure and word order as much as possible
-4. A list of chunk pairs that map each meaningful lexical item (word or phrase) from the original to its corresponding item in the direct translation
+3. A direct, literal translation that preserves the original structure and as much as possible, but word order should match English syntax.
+4. A list of chunk pairs that map each meaningful lexical item (word or phrase) from the original to its corresponding item in the direct translation. Focus on content words and phrases and skip function words. Only include function words when they are absolutely necessary for the chunk to match the corresponding chunk.
 
 Example format:
 - Original: 今日のおやつどうしようか。
 - Natural translation: What snack do you want today?
 - Direct translation: What to do for today's snack?
 - Chunk pairs: [(今日, today), (おやつ, snack), (どうしよう, what to do)]
+
+Verify that each item in the chunk pairs corresponds exactly to text in the original and the direct translation.
 
 Return your response as a JSON object matching the provided schema.`
         }
