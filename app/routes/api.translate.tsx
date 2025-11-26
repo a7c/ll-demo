@@ -9,49 +9,19 @@ export interface ChunkPair {
   translation: string;
 }
 
+export interface LiteralPart {
+  type: 'text' | 'word';
+  content: string;
+  sourceWord?: string;
+}
+
 export interface TranslationResponse {
   original: string;
   naturalTranslation: string;
   directTranslation: string;
   chunkPairs: ChunkPair[];
+  literalParts: LiteralPart[];
 }
-
-const translationSchema = {
-  type: "object" as const,
-  properties: {
-    original: {
-      type: "string" as const,
-      description: "The original text that was provided for translation"
-    },
-    naturalTranslation: {
-      type: "string" as const,
-      description: "A natural, idiomatic translation into English that prioritizes readability and fluency"
-    },
-    directTranslation: {
-      type: "string" as const,
-      description: "A direct, literal translation into English that preserves the structure and word order of the original text as much as possible"
-    },
-    chunkPairs: {
-      type: "array" as const,
-      description: "A list of paired lexical items from the original text and their corresponding items in the direct translation",
-      items: {
-        type: "object" as const,
-        properties: {
-          original: {
-            type: "string" as const,
-            description: "A lexical item (word or phrase) from the original text"
-          },
-          translation: {
-            type: "string" as const,
-            description: "The corresponding lexical item from the direct translation"
-          }
-        },
-        required: ["original" as const, "translation" as const]
-      }
-    }
-  },
-  required: ["original" as const, "naturalTranslation" as const, "directTranslation" as const, "chunkPairs" as const]
-};
 
 export async function action({ request }: { request: Request }) {
   try {
@@ -64,60 +34,67 @@ export async function action({ request }: { request: Request }) {
       );
     }
 
-
-    // TODO: Provide more context for the translation.
-    const message = await anthropic.messages.create({
-      model: 'claude-sonnet-4-20250514',
+    const stream = anthropic.messages.stream({
+      model: 'claude-sonnet-4-5-20250929',
       max_tokens: 2000,
       messages: [
         {
           role: 'user',
-          content: `You are a language learning assistant. Translate the following text into English and provide structured analysis.
+          content: `You are a language learning assistant. Translate the following text into English using XML format.
 
 Text to translate: "${text}"
 
-Please provide:
-1. The original text (echo it back)
-2. A natural, idiomatic English translation that reads smoothly and naturally
-3. A direct, literal translation that preserves the original structure and as much as possible, but word order should match English syntax.
-4. A list of chunk pairs that map each meaningful lexical item (word or phrase) from the original to its corresponding item in the direct translation. Focus on content words and phrases and skip function words. Only include function words when they are absolutely necessary for the chunk to match the corresponding chunk.
+Respond with ONLY this XML structure (no other text):
 
-Example format:
-- Original: 今日のおやつどうしようか。
-- Natural translation: What snack do you want today?
-- Direct translation: What to do for today's snack?
-- Chunk pairs: [(今日, today), (おやつ, snack), (どうしよう, what to do)]
+<idio>Natural, idiomatic English translation that reads smoothly</idio>
+<words>
+<w=word1_in_source>word1_in_english</w>
+<w=word2_in_source>word2_in_english</w>
+...more word pairs...
+</words>
+<literal>Tagged literal translation with each word wrapped in its source tag</literal>
 
-Verify that each item in the chunk pairs corresponds exactly to text in the original and the direct translation.
+Rules:
+- <idio>: A natural, fluent English translation
+- <words>: Map each meaningful lexical item (word/phrase) from source to English. Focus on content words. The source word goes in the = attribute, the English translation goes inside the tag.
+- <literal>: A direct translation where EACH translated word/phrase is wrapped with <w=source>word</w> tags matching the words section. Non-content words (articles, prepositions) stay untagged.
 
-Return your response as a JSON object matching the provided schema.`
+Example for "今日のおやつどうしようか。":
+<idio>What snack do you want today?</idio>
+<words>
+<w=今日>today</w>
+<w=おやつ>snack</w>
+<w=どうしよう>what to do</w>
+</words>
+<literal><w=どうしよう>What to do</w> for <w=今日>today</w>'s <w=おやつ>snack</w>?</literal>
+
+Output ONLY the XML, nothing else.`
         }
       ],
-      tools: [
-        {
-          name: 'provide_translation',
-          description: 'Provide a structured translation with natural translation, direct translation, and chunk pairs',
-          input_schema: translationSchema
-        }
-      ],
-      tool_choice: { type: 'tool', name: 'provide_translation' }
     });
 
-    // Extract the tool use result
-    const toolUse = message.content.find(
-      (block): block is Anthropic.Messages.ToolUseBlock => block.type === 'tool_use'
-    );
+    const encoder = new TextEncoder();
+    const readable = new ReadableStream({
+      async start(controller) {
+        try {
+          for await (const event of stream) {
+            if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
+              controller.enqueue(encoder.encode(event.delta.text));
+            }
+          }
+          controller.close();
+        } catch (error) {
+          controller.error(error);
+        }
+      },
+    });
 
-    if (!toolUse) {
-      return Response.json(
-        { error: 'No translation generated' },
-        { status: 500 }
-      );
-    }
-
-    const translationData = toolUse.input as TranslationResponse;
-
-    return Response.json(translationData);
+    return new Response(readable, {
+      headers: {
+        'Content-Type': 'text/plain; charset=utf-8',
+        'Transfer-Encoding': 'chunked',
+      },
+    });
   } catch (error) {
     console.error('Translation error:', error);
     return Response.json(

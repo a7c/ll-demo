@@ -1,5 +1,7 @@
 import { useState } from 'react';
+import { motion, LayoutGroup } from 'framer-motion';
 import type { TranslationResponse } from '../routes/api.translate';
+import type { PartialTranslation, LiteralPart } from '../utils/xmlParser';
 import { generateChunkColors, getColorWithOpacity } from '../utils/colors';
 import { DropZone } from './DropZone';
 import { FlashcardEditor } from './FlashcardEditor';
@@ -7,88 +9,56 @@ import type { DraftFlashcard, Flashcard } from '../types/flashcard';
 import { createFlashcard } from '../utils/flashcard';
 
 interface TranslationResultProps {
-  translation: TranslationResponse;
+  translation: TranslationResponse | null;
+  partialTranslation: PartialTranslation | null;
   onClose: () => void;
   hoveredIndex: number | null;
   savedFlashcards: Flashcard[];
   onSaveFlashcard: (flashcard: DraftFlashcard) => void;
   onDeleteFlashcard: (id: string) => void;
+  isStreaming: boolean;
 }
 
-function renderTextWithHighlights(
-  text: string,
-  chunks: string[],
-  colors: string[],
-  hoveredIndex: number | null
-) {
-  let remainingText = text;
-  const parts: React.ReactNode[] = [];
-  let globalIndex = 0;
+interface ChunkColorMap {
+  [sourceWord: string]: { color: string; index: number };
+}
 
-  // Sort chunks by their position in the text (longest first to avoid partial matches)
-  const sortedChunks = chunks
-    .map((chunk, index) => ({ chunk, index, pos: text.indexOf(chunk) }))
-    .filter(item => item.pos !== -1)
-    .sort((a, b) => a.pos - b.pos);
-
-  let lastIndex = 0;
-
-  sortedChunks.forEach(({ chunk, index, pos }) => {
-    // Add text before this chunk
-    if (pos > lastIndex) {
-      parts.push(
-        <span key={`text-${globalIndex++}`}>
-          {text.slice(lastIndex, pos)}
-        </span>
-      );
-    }
-
-    // Add the highlighted chunk as a pill
-    const isHovered = hoveredIndex === index;
-    parts.push(
-      <span
-        key={`chunk-${index}`}
-        className="inline-block px-2 py-0.5 rounded-md font-medium transition-all duration-200"
-        style={{
-          backgroundColor: isHovered
-            ? colors[index]
-            : getColorWithOpacity(colors[index], 0.25),
-          color: isHovered ? 'white' : 'inherit',
-          transform: isHovered ? 'scale(1.05)' : 'scale(1)',
-        }}
-      >
-        {chunk}
-      </span>
-    );
-
-    lastIndex = pos + chunk.length;
+function buildColorMap(chunkPairs: { original: string; translation: string }[], colors: string[]): ChunkColorMap {
+  const map: ChunkColorMap = {};
+  chunkPairs.forEach((pair, idx) => {
+    // lowercase for case-insensitive lookup
+    map[pair.original.toLowerCase()] = { color: colors[idx], index: idx };
   });
+  return map;
+}
 
-  // Add remaining text
-  if (lastIndex < text.length) {
-    parts.push(
-      <span key={`text-${globalIndex++}`}>
-        {text.slice(lastIndex)}
-      </span>
-    );
-  }
-
-  return <>{parts}</>;
+function getColorForSourceWord(sourceWord: string, colorMap: ChunkColorMap): { color: string; index: number } | null {
+  return colorMap[sourceWord.toLowerCase()] || null;
 }
 
 export function TranslationResult({ 
   translation, 
+  partialTranslation,
   onClose, 
   hoveredIndex, 
   savedFlashcards, 
   onSaveFlashcard, 
-  onDeleteFlashcard 
-}: TranslationResultProps) {
+  onDeleteFlashcard,
+  isStreaming }: TranslationResultProps) {
   const [draftFlashcard, setDraftFlashcard] = useState<DraftFlashcard | null>(null);
   const [currentTranslationFlashcards, setCurrentTranslationFlashcards] = useState<Flashcard[]>([]);
-  
-  const colors = generateChunkColors(translation.chunkPairs.length);
-  const translationChunks = translation.chunkPairs.map(pair => pair.translation);
+
+  // use partial translation if we're streaming 
+  const data = isStreaming ? partialTranslation : translation;
+  const chunkPairs = data?.chunkPairs || [];
+  const naturalTranslation = data?.naturalTranslation || '';
+  const literalParts = (isStreaming ? partialTranslation?.literalParts : translation?.literalParts) || [];
+  // wait for literal translation to be complete before showing it
+  const literalIsComplete = isStreaming ? (partialTranslation?.isComplete ?? false) : true;
+  const showLiteralTranslation = literalParts.length > 0 && literalIsComplete;
+
+  const colors = generateChunkColors(chunkPairs.length);
+  const colorMap = buildColorMap(chunkPairs, colors);
 
   const handleDrop = (targetWord: string, translation: string) => {
     setDraftFlashcard({ targetWord, translation });
@@ -131,33 +101,118 @@ export function TranslationResult({
       </div>
 
 
-      {/* Natural Translation */}
+      {/* Idiomatic Translation */}
       <div className="bg-white rounded-xl p-5 shadow-sm border border-[var(--color-border)] mb-4">
-        <h4 className="text-xs font-semibold text-[var(--color-sepia)] uppercase tracking-wider mb-2">
-          Natural Translation
-        </h4>
-        <p className="text-lg leading-relaxed font-medium">
-          {translation.naturalTranslation}
-        </p>
-      </div>
-
-      {/* Direct Translation */}
-      <div className="bg-white rounded-xl p-5 shadow-sm border border-[var(--color-border)] mb-4">
-        <h4 className="text-xs font-semibold text-[var(--color-sepia)] uppercase tracking-wider mb-2">
-          Direct Translation
-        </h4>
-        <p className="text-base text-[var(--color-ink-light)] leading-relaxed">
-          {renderTextWithHighlights(
-            translation.directTranslation,
-            translationChunks,
-            colors,
-            hoveredIndex
+        <div className="flex items-center gap-2 mb-2">
+          <h4 className="text-xs font-semibold text-[var(--color-sepia)] uppercase tracking-wider">
+            Idiomatic Translation
+          </h4>
+          {isStreaming && naturalTranslation && (
+            <span className="inline-block w-2 h-2 bg-[var(--color-accent)] rounded-full animate-pulse" />
           )}
-        </p>
+        </div>
+        {naturalTranslation ? (
+          <p className="text-lg leading-relaxed font-medium">
+            {naturalTranslation}
+          </p>
+        ) : isStreaming ? (
+          <div className="h-6 bg-gray-100 rounded animate-pulse" />
+        ) : null}
       </div>
 
-      {/* New Flashcards */}
-      {currentTranslationFlashcards.length > 0 && (
+      {/* Literal Translation */}
+      <div className="bg-white rounded-xl p-5 shadow-sm border border-[var(--color-border)] mb-4">
+        <div className="flex items-center gap-2 mb-2">
+          <h4 className="text-xs font-semibold text-[var(--color-sepia)] uppercase tracking-wider">
+            Literal Translation
+          </h4>
+          {isStreaming && chunkPairs.length > 0 && !showLiteralTranslation && (
+            <span className="inline-block w-2 h-2 bg-[var(--color-accent)] rounded-full animate-pulse" />
+          )}
+        </div>
+
+        <LayoutGroup>
+          {chunkPairs.length > 0 && !showLiteralTranslation && (
+            <div className="flex flex-wrap gap-1 text-base leading-relaxed">
+              {chunkPairs.map((pair, idx) => (
+                <motion.span
+                  key={pair.original}
+                  layoutId={`word-${pair.original.toLowerCase()}-0`}
+                  className="inline-block px-2 py-0.5 rounded-md font-medium"
+                  style={{ backgroundColor: getColorWithOpacity(colors[idx], 0.25) }}
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.2, delay: idx * 0.05 }}
+                >
+                  {pair.translation}
+                </motion.span>
+              ))}
+            </div>
+          )}
+
+          {showLiteralTranslation && (
+            <p className="text-base text-[var(--color-ink-light)] leading-relaxed">
+              {(() => {
+                const occurrenceCount: Record<string, number> = {};
+
+                return literalParts.map((part, idx) => {
+                  if (part.type === 'text') {
+                    return <span key={`text-${idx}`}>{part.content}</span>;
+                  }
+
+                  const colorInfo = part.sourceWord ? getColorForSourceWord(part.sourceWord, colorMap) : null;
+                  const isHovered = colorInfo ? hoveredIndex === colorInfo.index : false;
+                  const key = part.sourceWord?.toLowerCase() || '';
+                  const occurrence = occurrenceCount[key] || 0;
+                  occurrenceCount[key] = occurrence + 1;
+                  const isFirstOccurrence = occurrence === 0;
+
+                  if (isFirstOccurrence && key) {
+                    return (
+                      <motion.span
+                        key={`word-${idx}-${part.sourceWord}-${occurrence}`}
+                        layoutId={`word-${key}-0`}
+                        className="inline-block px-2 py-0.5 rounded-md font-medium transition-colors duration-200"
+                        style={{
+                          backgroundColor: colorInfo
+                            ? (isHovered ? colorInfo.color : getColorWithOpacity(colorInfo.color, 0.25))
+                            : 'transparent',
+                          color: isHovered ? 'white' : 'inherit',
+                        }}
+                        transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                      >
+                        {part.content}
+                      </motion.span>
+                    );
+                  }
+
+                  return (
+                    <span
+                      key={`word-${idx}-${part.sourceWord}-${occurrence}`}
+                      className="inline-block px-2 py-0.5 rounded-md font-medium transition-colors duration-200"
+                      style={{
+                        backgroundColor: colorInfo
+                          ? (isHovered ? colorInfo.color : getColorWithOpacity(colorInfo.color, 0.25))
+                          : 'transparent',
+                        color: isHovered ? 'white' : 'inherit',
+                      }}
+                    >
+                      {part.content}
+                    </span>
+                  );
+                });
+              })()}
+            </p>
+          )}
+        </LayoutGroup>
+
+        {isStreaming && chunkPairs.length === 0 && !showLiteralTranslation && (
+          <div className="h-6 bg-gray-100 rounded animate-pulse" />
+        )}
+      </div>
+
+      {/* Saved Flashcards - only show when not streaming */}
+      {!isStreaming && currentTranslationFlashcards.length > 0 && (
         <div className="mb-4">
           <h4 className="text-xs font-semibold text-[var(--color-sepia)] uppercase tracking-wider mb-3">
             New Flashcards ({currentTranslationFlashcards.length})
@@ -191,15 +246,17 @@ export function TranslationResult({
         </div>
       )}
 
-      {/* Flashcard Editor or Drop Zone */}
-      {draftFlashcard ? (
-        <FlashcardEditor
-          draft={draftFlashcard}
-          onSave={handleSaveFlashcard}
-          onCancel={handleCancelFlashcard}
-        />
-      ) : (
-        <DropZone onDrop={handleDrop} />
+      {/* Flashcard Editor or Drop Zone - only show when not streaming */}
+      {!isStreaming && (
+        draftFlashcard ? (
+          <FlashcardEditor
+            draft={draftFlashcard}
+            onSave={handleSaveFlashcard}
+            onCancel={handleCancelFlashcard}
+          />
+        ) : (
+          <DropZone onDrop={handleDrop} />
+          )
       )}
     </div>
   );

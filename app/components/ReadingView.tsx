@@ -8,6 +8,7 @@ import type { TranslationResponse } from '../routes/api.translate';
 import type { Flashcard, DraftFlashcard } from '../types/flashcard';
 import { Rating } from '../types/flashcard';
 import { createFlashcard } from '../utils/flashcard';
+import { parseStreamingXml, type PartialTranslation } from '../utils/xmlParser';
 
 interface TooltipPosition {
   x: number;
@@ -52,6 +53,7 @@ export function ReadingView() {
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
   const [customText, setCustomText] = useState<CustomText>(DEFAULT_TEXT);
   const [savedFlashcards, setSavedFlashcards] = useState<Flashcard[]>([]);
+  const [partialTranslation, setPartialTranslation] = useState<PartialTranslation | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const readingPanelRef = useRef<HTMLDivElement>(null);
 
@@ -129,7 +131,9 @@ export function ReadingView() {
     if (!selectedText || isTranslating) return;
 
     setIsTranslating(true);
-    setTooltipPosition(null); // Hide tooltip while translating
+    setTooltipPosition(null);
+    setTranslation(null);
+    setPartialTranslation(null);
 
     try {
       const response = await fetch('/api/translate', {
@@ -144,8 +148,32 @@ export function ReadingView() {
         throw new Error('Translation failed');
       }
 
-      const data: TranslationResponse = await response.json();
-      setTranslation(data);
+      const reader = response.body?.getReader();
+      if (!reader) {
+        throw new Error('No response body');
+      }
+
+      const decoder = new TextDecoder();
+      let accumulated = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        accumulated += decoder.decode(value, { stream: true });
+        const parsed = parseStreamingXml(accumulated, selectedText);
+        setPartialTranslation(parsed);
+
+        if (parsed.isComplete) {
+          setTranslation({
+            original: parsed.original,
+            naturalTranslation: parsed.naturalTranslation || '',
+            directTranslation: parsed.directTranslation || '',
+            chunkPairs: parsed.chunkPairs,
+            literalParts: parsed.literalParts,
+          });
+        }
+      }
     } catch (error) {
       console.error('Translation error:', error);
       alert('Translation failed. Please try again.');
@@ -288,9 +316,20 @@ export function ReadingView() {
                   key={index}
                   className={index === 0 ? "first-letter:text-6xl first-letter:font-semibold first-letter:text-[var(--color-accent)] first-letter:float-left first-letter:mr-3 first-letter:mt-1 first-letter:leading-none" : ""}
                 >
-                  <HighlightedText 
+                  <HighlightedText
                     text={paragraph}
-                    translation={translation}
+                    translation={
+                      // use partial translation if we're translating
+                      isTranslating && partialTranslation
+                        ? {
+                          original: partialTranslation.original,
+                          naturalTranslation: partialTranslation.naturalTranslation || '',
+                          directTranslation: partialTranslation.directTranslation || '',
+                          chunkPairs: partialTranslation.chunkPairs,
+                          literalParts: partialTranslation.literalParts,
+                        }
+                        : translation
+                    }
                     onHoverChange={setHoveredIndex}
                   />
                 </p>
@@ -317,31 +356,45 @@ export function ReadingView() {
 
           {/* Sidebar Content */}
           <div className="flex-1 overflow-y-auto p-6">
-            {isTranslating ? (
-              <div className="flex items-center justify-center h-full text-center px-4">
-                <div className="text-[var(--color-sepia)]">
-                  <svg className="w-16 h-16 mx-auto mb-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                  </svg>
-                  <span className="text-sm font-medium">Translating...</span>
-                </div>
-              </div>
-            ) : translation ? (
-              <TranslationResult 
-                translation={translation} 
-                onClose={handleCloseTranslation} 
+            {isTranslating && partialTranslation ? (
+              <TranslationResult
+                translation={null}
+                partialTranslation={partialTranslation}
+                onClose={handleCloseTranslation}
                 hoveredIndex={hoveredIndex}
                 savedFlashcards={savedFlashcards}
                 onSaveFlashcard={handleSaveFlashcard}
                 onDeleteFlashcard={handleDeleteFlashcard}
+                isStreaming={true}
               />
+            ) : translation ? (
+              <TranslationResult
+                translation={translation}
+                partialTranslation={null}
+                onClose={handleCloseTranslation}
+                hoveredIndex={hoveredIndex}
+                savedFlashcards={savedFlashcards}
+                onSaveFlashcard={handleSaveFlashcard}
+                onDeleteFlashcard={handleDeleteFlashcard}
+                isStreaming={false}
+              />
+            ) : isTranslating ? (
+              <div className="flex items-center justify-center h-full text-center px-4">
+                    <div className="text-[var(--color-sepia)]">
+                      <svg className="w-16 h-16 mx-auto mb-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                      </svg>
+                      <span className="text-sm font-medium">Translating...</span>
+                </div>
+                  </div>
             ) : savedFlashcards.length > 0 ? (
               <FlashcardList 
                 flashcards={savedFlashcards}
                 onDelete={handleDeleteFlashcard}
                 onStartReview={handleStartReview}
               />
-            ) : <div className="flex items-center justify-center h-full text-center px-4">
+            ) : (
+              <div className="flex items-center justify-center h-full text-center px-4">
                 <div className="text-[var(--color-sepia)]">
                   <svg className="w-16 h-16 mx-auto mb-4 opacity-40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129" />
@@ -349,7 +402,8 @@ export function ReadingView() {
                   <p className="text-sm font-medium mb-2">Select text to translate</p>
                   <p className="text-xs opacity-75">Highlight any word, sentence, or passage in the reading panel and click the Translate button!</p>
                 </div>
-              </div>}
+              </div>
+            )}
           </div>
         </aside>
       </div>

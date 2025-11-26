@@ -8,6 +8,10 @@ interface HighlightedTextProps {
   onHoverChange?: (index: number | null) => void;
 }
 
+function indexOfIgnoreCase(text: string, search: string): number {
+  return text.toLowerCase().indexOf(search.toLowerCase());
+}
+
 export function HighlightedText({ text, translation, onHoverChange }: HighlightedTextProps) {
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
 
@@ -21,8 +25,8 @@ export function HighlightedText({ text, translation, onHoverChange }: Highlighte
     return <>{text}</>;
   }
 
-  // Check if the translation's original text is contained within this paragraph
-  const translationStartPos = text.indexOf(translation.original);
+  // find original text position
+  const translationStartPos = indexOfIgnoreCase(text, translation.original);
   if (translationStartPos === -1) {
     // This paragraph doesn't contain the translated text
     return <>{text}</>;
@@ -31,14 +35,17 @@ export function HighlightedText({ text, translation, onHoverChange }: Highlighte
   const colors = generateChunkColors(translation.chunkPairs.length);
   const chunks = translation.chunkPairs.map(pair => pair.original);
 
-  // Sort chunks by their position in the translation's original text
+  // sort chunks by their position in original text
   const sortedChunks = chunks
-    .map((chunk, index) => ({ 
-      chunk, 
-      index, 
-      pos: translation.original.indexOf(chunk),
-      absolutePos: translationStartPos + translation.original.indexOf(chunk)
-    }))
+    .map((chunk, index) => {
+      const pos = indexOfIgnoreCase(translation.original, chunk);
+      return {
+        chunk,
+        index,
+        pos,
+        absolutePos: pos !== -1 ? translationStartPos + pos : -1
+      };
+    })
     .filter(item => item.pos !== -1)
     .sort((a, b) => a.absolutePos - b.absolutePos);
 
@@ -69,14 +76,17 @@ export function HighlightedText({ text, translation, onHoverChange }: Highlighte
       );
     }
 
+    // get original text w/ case preserved
+    const originalText = text.slice(absolutePos, absolutePos + chunk.length);
+
     // Add the highlighted chunk as a draggable pill
     const isHovered = hoveredIndex === index;
     const chunkTranslation = translation.chunkPairs[index].translation;
-    
+
     const handleDragStart = (e: React.DragEvent) => {
       e.dataTransfer.effectAllowed = 'copy';
       e.dataTransfer.setData('application/json', JSON.stringify({
-        targetWord: chunk,
+        targetWord: originalText,
         translation: chunkTranslation
       }));
     };
@@ -97,7 +107,7 @@ export function HighlightedText({ text, translation, onHoverChange }: Highlighte
         onMouseEnter={() => handleHover(index)}
         onMouseLeave={() => handleHover(null)}
       >
-        {chunk}
+        {originalText}
       </span>
     );
 

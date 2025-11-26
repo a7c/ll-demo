@@ -12,6 +12,7 @@
     "@anthropic-ai/sdk": "^0.71.0",
     "@react-router/node": "^7.9.2",
     "@react-router/serve": "^7.9.2",
+    "framer-motion": "^12.23.24",
     "isbot": "^5.1.31",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
