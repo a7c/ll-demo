@@ -16,30 +16,55 @@ export function HighlightedText({ text, translation, onHoverChange }: Highlighte
     onHoverChange?.(index);
   };
 
-  // If no translation or the text doesn't match the original, render plain text
-  if (!translation || translation.original !== text) {
+  // If no translation, render plain text
+  if (!translation) {
+    return <>{text}</>;
+  }
+
+  // Check if the translation's original text is contained within this paragraph
+  const translationStartPos = text.indexOf(translation.original);
+  if (translationStartPos === -1) {
+    // This paragraph doesn't contain the translated text
     return <>{text}</>;
   }
 
   const colors = generateChunkColors(translation.chunkPairs.length);
   const chunks = translation.chunkPairs.map(pair => pair.original);
 
-  // Sort chunks by their position in the text
+  // Sort chunks by their position in the translation's original text
   const sortedChunks = chunks
-    .map((chunk, index) => ({ chunk, index, pos: text.indexOf(chunk) }))
+    .map((chunk, index) => ({ 
+      chunk, 
+      index, 
+      pos: translation.original.indexOf(chunk),
+      absolutePos: translationStartPos + translation.original.indexOf(chunk)
+    }))
     .filter(item => item.pos !== -1)
-    .sort((a, b) => a.pos - b.pos);
+    .sort((a, b) => a.absolutePos - b.absolutePos);
 
   const parts: React.ReactNode[] = [];
   let lastIndex = 0;
   let globalIndex = 0;
 
-  sortedChunks.forEach(({ chunk, index, pos }) => {
-    // Add text before this chunk
-    if (pos > lastIndex) {
+  // Add text before the translated section
+  if (translationStartPos > 0) {
+    parts.push(
+      <span key={`text-${globalIndex++}`}>
+        {text.slice(0, translationStartPos)}
+      </span>
+    );
+  }
+
+  // Render the translated section with pills
+  const translationEndPos = translationStartPos + translation.original.length;
+  let lastPosInTranslation = translationStartPos;
+
+  sortedChunks.forEach(({ chunk, index, absolutePos }) => {
+    // Add text before this chunk (within the translated section)
+    if (absolutePos > lastPosInTranslation) {
       parts.push(
         <span key={`text-${globalIndex++}`}>
-          {text.slice(lastIndex, pos)}
+          {text.slice(lastPosInTranslation, absolutePos)}
         </span>
       );
     }
@@ -76,14 +101,23 @@ export function HighlightedText({ text, translation, onHoverChange }: Highlighte
       </span>
     );
 
-    lastIndex = pos + chunk.length;
+    lastPosInTranslation = absolutePos + chunk.length;
   });
 
-  // Add remaining text
-  if (lastIndex < text.length) {
+  // Add remaining text within the translated section
+  if (lastPosInTranslation < translationEndPos) {
     parts.push(
       <span key={`text-${globalIndex++}`}>
-        {text.slice(lastIndex)}
+        {text.slice(lastPosInTranslation, translationEndPos)}
+      </span>
+    );
+  }
+
+  // Add text after the translated section
+  if (translationEndPos < text.length) {
+    parts.push(
+      <span key={`text-${globalIndex++}`}>
+        {text.slice(translationEndPos)}
       </span>
     );
   }

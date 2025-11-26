@@ -1,12 +1,39 @@
 import { useState, useRef, useEffect } from 'react';
 import { TranslationResult } from './TranslationResult';
 import { HighlightedText } from './HighlightedText';
+import { TextUploadModal } from './TextUploadModal';
 import type { TranslationResponse } from '../routes/api.translate';
 
 interface TooltipPosition {
   x: number;
   y: number;
 }
+
+interface CustomText {
+  title: string;
+  language: string;
+  content: string;
+}
+
+const DEFAULT_TEXT: CustomText = {
+  title: "Le Petit Prince",
+  language: "French",
+  content: `Lorsque j'avais six ans j'ai vu, une fois, une magnifique image, dans un livre sur la Forêt Vierge qui s'appelait "Histoires Vécues". Ça représentait un serpent boa qui avalait un fauve. Voilà la copie du dessin.
+
+On disait dans le livre: "Les serpents boas avalent leur proie tout entière, sans la mâcher. Ensuite ils ne peuvent plus bouger et ils dorment pendant les six mois de leur digestion."
+
+J'ai alors beaucoup réfléchi sur les aventures de la jungle et, à mon tour, j'ai réussi, avec un crayon de couleur, à tracer mon premier dessin. Mon dessin numéro 1. Il était comme ça:
+
+J'ai montré mon chef d'œuvre aux grandes personnes et je leur ai demandé si mon dessin leur faisait peur.
+
+Elles m'ont répondu: "Pourquoi un chapeau ferait-il peur?"
+
+Mon dessin ne représentait pas un chapeau. Il représentait un serpent boa qui digérait un éléphant. J'ai alors dessiné l'intérieur du serpent boa, afin que les grandes personnes puissent comprendre. Elles ont toujours besoin d'explications.
+
+Les grandes personnes m'ont conseillé de laisser de côté les dessins de serpents boas ouverts ou fermés, et de m'intéresser plutôt à la géographie, à l'histoire, au calcul et à la grammaire. C'est ainsi que j'ai abandonné, à l'âge de six ans, une magnifique carrière de peintre.
+
+J'avais été découragé par l'insuccès de mon dessin numéro 1 et de mon dessin numéro 2. Les grandes personnes ne comprennent jamais rien toutes seules, et c'est fatigant, pour les enfants, de toujours et toujours leur donner des explications.`
+};
 
 export function ReadingView() {
   const [sidebarWidth, setSidebarWidth] = useState(380);
@@ -16,6 +43,8 @@ export function ReadingView() {
   const [translation, setTranslation] = useState<TranslationResponse | null>(null);
   const [isTranslating, setIsTranslating] = useState(false);
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
+  const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+  const [customText, setCustomText] = useState<CustomText>(DEFAULT_TEXT);
   const containerRef = useRef<HTMLDivElement>(null);
   const readingPanelRef = useRef<HTMLDivElement>(null);
 
@@ -122,6 +151,12 @@ export function ReadingView() {
     setTranslation(null);
   };
 
+  const handleUploadText = (text: string, title: string, language: string) => {
+    setCustomText({ title, language, content: text });
+    setTranslation(null); // Clear any existing translation
+    setIsUploadModalOpen(false);
+  };
+
   return (
     <div className="flex flex-col h-screen">
       {/* Header */}
@@ -136,7 +171,10 @@ export function ReadingView() {
           </div>
         </div>
         <div className="flex items-center gap-4">
-          <button className="px-4 py-2 text-sm font-medium text-[var(--color-ink-light)] hover:text-[var(--color-accent)] transition-colors">
+          <button 
+            onClick={() => setIsUploadModalOpen(true)}
+            className="px-4 py-2 text-sm font-medium text-[var(--color-ink-light)] hover:text-[var(--color-accent)] transition-colors"
+          >
             Upload Text
           </button>
           <button className="px-4 py-2 text-sm font-medium bg-[var(--color-accent)] text-white rounded-lg hover:bg-[var(--color-accent-dark)] transition-all shadow-sm hover:shadow-md">
@@ -197,86 +235,31 @@ export function ReadingView() {
           <article className="max-w-3xl mx-auto">
             <div className="mb-8 pb-6 border-b border-[var(--color-border)]">
               <h2 className="text-4xl font-serif font-semibold text-[var(--color-ink)] mb-3">
-                Le Petit Prince
+                {customText.title}
               </h2>
               <div className="flex items-center gap-4 text-sm text-[var(--color-sepia)]">
                 <span className="flex items-center gap-1.5">
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129" />
                   </svg>
-                  Antoine de Saint-Exupéry
+                  {customText.language}
                 </span>
-                <span>•</span>
-                <span>French • Intermediate</span>
-                <span>•</span>
-                <span>Chapter 1</span>
               </div>
             </div>
 
             <div className="prose prose-lg font-serif text-[var(--color-ink-light)] leading-relaxed space-y-6">
-              <p className="first-letter:text-6xl first-letter:font-semibold first-letter:text-[var(--color-accent)] first-letter:float-left first-letter:mr-3 first-letter:mt-1 first-letter:leading-none">
-                <HighlightedText 
-                  text={"Lorsque j'avais six ans j'ai vu, une fois, une magnifique image, dans un livre sur la Forêt Vierge qui s'appelait \"Histoires Vécues\". Ça représentait un serpent boa qui avalait un fauve. Voilà la copie du dessin."}
-                  translation={translation}
-                  onHoverChange={setHoveredIndex}
-                />
-              </p>
-
-              <p>
-                <HighlightedText 
-                  text={"On disait dans le livre: \"Les serpents boas avalent leur proie tout entière, sans la mâcher. Ensuite ils ne peuvent plus bouger et ils dorment pendant les six mois de leur digestion.\""}
-                  translation={translation}
-                  onHoverChange={setHoveredIndex}
-                />
-              </p>
-
-              <p>
-                <HighlightedText 
-                  text={"J'ai alors beaucoup réfléchi sur les aventures de la jungle et, à mon tour, j'ai réussi, avec un crayon de couleur, à tracer mon premier dessin. Mon dessin numéro 1. Il était comme ça:"}
-                  translation={translation}
-                  onHoverChange={setHoveredIndex}
-                />
-              </p>
-
-              <p>
-                <HighlightedText 
-                  text={"J'ai montré mon chef d'œuvre aux grandes personnes et je leur ai demandé si mon dessin leur faisait peur."}
-                  translation={translation}
-                  onHoverChange={setHoveredIndex}
-                />
-              </p>
-
-              <p>
-                <HighlightedText 
-                  text={"Elles m'ont répondu: \"Pourquoi un chapeau ferait-il peur?\""}
-                  translation={translation}
-                  onHoverChange={setHoveredIndex}
-                />
-              </p>
-
-              <p>
-                <HighlightedText 
-                  text={"Mon dessin ne représentait pas un chapeau. Il représentait un serpent boa qui digérait un éléphant. J'ai alors dessiné l'intérieur du serpent boa, afin que les grandes personnes puissent comprendre. Elles ont toujours besoin d'explications."}
-                  translation={translation}
-                  onHoverChange={setHoveredIndex}
-                />
-              </p>
-
-              <p>
-                <HighlightedText 
-                  text={"Les grandes personnes m'ont conseillé de laisser de côté les dessins de serpents boas ouverts ou fermés, et de m'intéresser plutôt à la géographie, à l'histoire, au calcul et à la grammaire. C'est ainsi que j'ai abandonné, à l'âge de six ans, une magnifique carrière de peintre."}
-                  translation={translation}
-                  onHoverChange={setHoveredIndex}
-                />
-              </p>
-
-              <p>
-                <HighlightedText 
-                  text={"J'avais été découragé par l'insuccès de mon dessin numéro 1 et de mon dessin numéro 2. Les grandes personnes ne comprennent jamais rien toutes seules, et c'est fatigant, pour les enfants, de toujours et toujours leur donner des explications."}
-                  translation={translation}
-                  onHoverChange={setHoveredIndex}
-                />
-              </p>
+              {customText.content.split('\n\n').map((paragraph, index) => (
+                <p 
+                  key={index}
+                  className={index === 0 ? "first-letter:text-6xl first-letter:font-semibold first-letter:text-[var(--color-accent)] first-letter:float-left first-letter:mr-3 first-letter:mt-1 first-letter:leading-none" : ""}
+                >
+                  <HighlightedText 
+                    text={paragraph}
+                    translation={translation}
+                    onHoverChange={setHoveredIndex}
+                  />
+                </p>
+              ))}
             </div>
           </article>
         </main>
@@ -315,6 +298,13 @@ export function ReadingView() {
           </div>
         </aside>
       </div>
+
+      {/* Text Upload Modal */}
+      <TextUploadModal
+        isOpen={isUploadModalOpen}
+        onClose={() => setIsUploadModalOpen(false)}
+        onUpload={handleUploadText}
+      />
     </div>
   );
 }
