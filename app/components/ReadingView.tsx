@@ -165,13 +165,34 @@ export function ReadingView() {
         setPartialTranslation(parsed);
 
         if (parsed.isComplete) {
-          setTranslation({
+          const translationData = {
             original: parsed.original,
             naturalTranslation: parsed.naturalTranslation || '',
             directTranslation: parsed.directTranslation || '',
             chunkPairs: parsed.chunkPairs,
             literalParts: parsed.literalParts,
-          });
+          };
+          setTranslation(translationData);
+          
+          // Auto-generate flashcards from chunk pairs
+          const newFlashcards = parsed.chunkPairs.map(pair => 
+            createFlashcard({
+              targetWord: pair.original,
+              translation: pair.translation
+            })
+          );
+          
+          // Filter out duplicates based on targetWord (case-insensitive)
+          const existingWords = new Set(
+            savedFlashcards.map(f => f.targetWord.toLowerCase())
+          );
+          const uniqueNewFlashcards = newFlashcards.filter(
+            f => !existingWords.has(f.targetWord.toLowerCase())
+          );
+          
+          if (uniqueNewFlashcards.length > 0) {
+            setSavedFlashcards([...savedFlashcards, ...uniqueNewFlashcards]);
+          }
         }
       }
     } catch (error) {
@@ -199,6 +220,14 @@ export function ReadingView() {
 
   const handleDeleteFlashcard = (id: string) => {
     setSavedFlashcards(savedFlashcards.filter(f => f.id !== id));
+  };
+
+  const handleUpdateFlashcard = (id: string, draft: DraftFlashcard) => {
+    setSavedFlashcards(savedFlashcards.map(card => 
+      card.id === id 
+        ? { ...card, targetWord: draft.targetWord, translation: draft.translation }
+        : card
+    ));
   };
 
   const handleStartReview = () => {
@@ -365,6 +394,7 @@ export function ReadingView() {
                 savedFlashcards={savedFlashcards}
                 onSaveFlashcard={handleSaveFlashcard}
                 onDeleteFlashcard={handleDeleteFlashcard}
+                onUpdateFlashcard={handleUpdateFlashcard}
                 isStreaming={true}
               />
             ) : translation ? (
@@ -376,6 +406,7 @@ export function ReadingView() {
                 savedFlashcards={savedFlashcards}
                 onSaveFlashcard={handleSaveFlashcard}
                 onDeleteFlashcard={handleDeleteFlashcard}
+                onUpdateFlashcard={handleUpdateFlashcard}
                 isStreaming={false}
               />
             ) : isTranslating ? (
@@ -391,6 +422,7 @@ export function ReadingView() {
               <FlashcardList 
                 flashcards={savedFlashcards}
                 onDelete={handleDeleteFlashcard}
+                onUpdate={handleUpdateFlashcard}
                 onStartReview={handleStartReview}
               />
             ) : (

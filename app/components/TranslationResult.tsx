@@ -1,12 +1,9 @@
-import { useState } from 'react';
 import { motion, LayoutGroup } from 'framer-motion';
 import type { TranslationResponse } from '../routes/api.translate';
 import type { PartialTranslation, LiteralPart } from '../utils/xmlParser';
 import { generateChunkColors, getColorWithOpacity } from '../utils/colors';
-import { DropZone } from './DropZone';
-import { FlashcardEditor } from './FlashcardEditor';
+import { FlashcardList } from './FlashcardList';
 import type { DraftFlashcard, Flashcard } from '../types/flashcard';
-import { createFlashcard } from '../utils/flashcard';
 
 interface TranslationResultProps {
   translation: TranslationResponse | null;
@@ -16,6 +13,7 @@ interface TranslationResultProps {
   savedFlashcards: Flashcard[];
   onSaveFlashcard: (flashcard: DraftFlashcard) => void;
   onDeleteFlashcard: (id: string) => void;
+  onUpdateFlashcard: (id: string, draft: DraftFlashcard) => void;
   isStreaming: boolean;
 }
 
@@ -44,10 +42,8 @@ export function TranslationResult({
   savedFlashcards, 
   onSaveFlashcard, 
   onDeleteFlashcard,
+  onUpdateFlashcard,
   isStreaming }: TranslationResultProps) {
-  const [draftFlashcard, setDraftFlashcard] = useState<DraftFlashcard | null>(null);
-  const [currentTranslationFlashcards, setCurrentTranslationFlashcards] = useState<Flashcard[]>([]);
-
   // use partial translation if we're streaming 
   const data = isStreaming ? partialTranslation : translation;
   const chunkPairs = data?.chunkPairs || [];
@@ -60,28 +56,13 @@ export function TranslationResult({
   const colors = generateChunkColors(chunkPairs.length);
   const colorMap = buildColorMap(chunkPairs, colors);
 
-  const handleDrop = (targetWord: string, translation: string) => {
-    setDraftFlashcard({ targetWord, translation });
-  };
+  // Filter flashcards that match the current translation's chunk pairs
+  const currentTranslationFlashcards = savedFlashcards.filter(flashcard => 
+    chunkPairs.some(pair => 
+      pair.original.toLowerCase() === flashcard.targetWord.toLowerCase()
+    )
+  );
 
-  const handleSaveFlashcard = (flashcard: DraftFlashcard) => {
-    const newFlashcard = createFlashcard(flashcard);
-    
-    // Add to both the global list and current translation list
-    onSaveFlashcard(flashcard);
-    setCurrentTranslationFlashcards([...currentTranslationFlashcards, newFlashcard]);
-    setDraftFlashcard(null);
-  };
-
-  const handleCancelFlashcard = () => {
-    setDraftFlashcard(null);
-  };
-
-  const handleDeleteCurrentFlashcard = (id: string) => {
-    // Remove from both lists
-    onDeleteFlashcard(id);
-    setCurrentTranslationFlashcards(currentTranslationFlashcards.filter(f => f.id !== id));
-  };
   return (
     <div className="animate-fadeIn">
       {/* Header with close button */}
@@ -211,52 +192,16 @@ export function TranslationResult({
         )}
       </div>
 
-      {/* Saved Flashcards - only show when not streaming */}
+      {/* New Vocabulary - only show when not streaming */}
       {!isStreaming && currentTranslationFlashcards.length > 0 && (
         <div className="mb-4">
-          <h4 className="text-xs font-semibold text-[var(--color-sepia)] uppercase tracking-wider mb-3">
-            New Flashcards ({currentTranslationFlashcards.length})
-          </h4>
-          <div className="space-y-2">
-            {currentTranslationFlashcards.map((flashcard) => (
-              <div
-                key={flashcard.id}
-                className="bg-white rounded-lg p-3 shadow-sm border border-[var(--color-border)] flex items-start justify-between gap-3 hover:shadow-md transition-shadow"
-              >
-                <div className="flex-1 min-w-0">
-                  <div className="font-serif text-base text-[var(--color-ink)] font-medium mb-1 truncate">
-                    {flashcard.targetWord}
-                  </div>
-                  <div className="text-sm text-[var(--color-ink-light)] truncate">
-                    {flashcard.translation}
-                  </div>
-                </div>
-                <button
-                  onClick={() => handleDeleteCurrentFlashcard(flashcard.id)}
-                  className="text-[var(--color-sepia)] hover:text-red-500 transition-colors flex-shrink-0"
-                  aria-label="Delete flashcard"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                  </svg>
-                </button>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Flashcard Editor or Drop Zone - only show when not streaming */}
-      {!isStreaming && (
-        draftFlashcard ? (
-          <FlashcardEditor
-            draft={draftFlashcard}
-            onSave={handleSaveFlashcard}
-            onCancel={handleCancelFlashcard}
+          <FlashcardList
+            flashcards={currentTranslationFlashcards}
+            type="new"
+            onDelete={onDeleteFlashcard}
+            onUpdate={onUpdateFlashcard}
           />
-        ) : (
-          <DropZone onDrop={handleDrop} />
-          )
+        </div>
       )}
     </div>
   );
