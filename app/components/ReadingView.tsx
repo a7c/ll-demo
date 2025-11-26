@@ -279,11 +279,10 @@ export function ReadingView() {
       <header className="border-b border-[var(--color-border)] bg-[var(--color-panel)] px-8 py-4 flex items-center justify-between animate-slideDown">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-[var(--color-accent)] to-[var(--color-accent-dark)] flex items-center justify-center shadow-md">
-            <span className="text-white text-xl font-semibold">語</span>
+            <span className="text-white text-2xl font-deco font-semibold">語</span>
           </div>
           <div>
-            <h1 className="text-xl font-semibold text-[var(--color-ink)]">LinguaScaffold</h1>
-            <p className="text-xs text-[var(--color-sepia)]">Contextual Language Learning</p>
+            <h1 className="text-4xl font-semibold font-serif text-[var(--color-ink)]">Lexis</h1>
           </div>
         </div>
         <div className="flex items-center gap-4">
@@ -348,7 +347,7 @@ export function ReadingView() {
         >
           <article className="max-w-3xl mx-auto">
             <div className="mb-8 pb-6 border-b border-[var(--color-border)]">
-              <h2 className="text-4xl font-serif font-semibold text-[var(--color-ink)] mb-3">
+              <h2 className="text-3xl font-serif font-semibold text-[var(--color-ink)] mb-3">
                 {customText.title}
               </h2>
               <div className="flex items-center gap-4 text-sm text-[var(--color-sepia)]">
@@ -378,7 +377,6 @@ export function ReadingView() {
                 }
                 previousTranslations={previousTranslations}
                 onHoverChange={setHoveredIndex}
-                renderParagraphs={true}
               />
             </div>
           </article>

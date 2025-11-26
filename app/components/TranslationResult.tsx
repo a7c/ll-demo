@@ -86,7 +86,7 @@ export function TranslationResult({
         {/* Idiomatic Translation */}
         <div className="bg-white rounded-xl p-5 shadow-sm border border-[var(--color-border)] mb-4">
           <div className="flex items-center gap-2 mb-2">
-            <h4 className="text-xs font-semibold text-[var(--color-sepia)] uppercase tracking-wider">
+            <h4 className="text-sm font-semibold text-[var(--color-sepia)] uppercase tracking-wider">
               Idiomatic Translation
             </h4>
             {isStreaming && naturalTranslation && (
@@ -94,7 +94,7 @@ export function TranslationResult({
             )}
           </div>
           {naturalTranslation ? (
-            <p className="text-lg leading-relaxed font-medium">
+            <p className="text-sm leading-relaxed font-medium">
               {naturalTranslation}
             </p>
           ) : isStreaming ? (
@@ -105,7 +105,7 @@ export function TranslationResult({
         {/* Literal Translation */}
         <div className="bg-white rounded-xl p-5 shadow-sm border border-[var(--color-border)] mb-4">
           <div className="flex items-center gap-2 mb-2">
-            <h4 className="text-xs font-semibold text-[var(--color-sepia)] uppercase tracking-wider">
+            <h4 className="text-sm font-semibold text-[var(--color-sepia)] uppercase tracking-wider">
               Literal Translation
             </h4>
             {isStreaming && chunkPairs.length > 0 && !showLiteralTranslation && (
@@ -115,7 +115,7 @@ export function TranslationResult({
 
           <LayoutGroup>
             {chunkPairs.length > 0 && !showLiteralTranslation && (
-              <div className="flex flex-wrap gap-1 text-base leading-relaxed">
+              <div className="flex flex-wrap gap-1 text-sm leading-relaxed">
                 {chunkPairs.map((pair, idx) => (
                   <motion.span
                     key={pair.original}
@@ -133,7 +133,7 @@ export function TranslationResult({
             )}
 
             {showLiteralTranslation && (
-              <p className="text-base text-[var(--color-ink-light)] leading-relaxed">
+              <p className="text-sm text-[var(--color-ink-light)] leading-relaxed">
                 {(() => {
                   const occurrenceCount: Record<string, number> = {};
 

@@ -7,14 +7,13 @@ interface HighlightedTextProps {
   translation: TranslationResponse | null;
   previousTranslations?: TranslationResponse[];
   onHoverChange?: (index: number | null) => void;
-  renderParagraphs?: boolean;
 }
 
 function indexOfIgnoreCase(text: string, search: string): number {
   return text.toLowerCase().indexOf(search.toLowerCase());
 }
 
-export function HighlightedText({ text, translation, previousTranslations = [], onHoverChange, renderParagraphs = true }: HighlightedTextProps) {
+export function HighlightedText({ text, translation, previousTranslations = [], onHoverChange}: HighlightedTextProps) {
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
   const [clickedIndices, setClickedIndices] = useState<Set<number>>(new Set());
 
@@ -40,13 +39,26 @@ export function HighlightedText({ text, translation, previousTranslations = [], 
     });
   };
 
-  // If no translation, check for previous translations
-  if (!translation && previousTranslations.length === 0) {
-    return <>{text}</>;
-  }
-
   // Combine current and previous translations
   const allTranslations = translation ? [translation, ...previousTranslations] : previousTranslations;
+
+  // if no translations, render text as-is
+  if (allTranslations.length === 0) {
+    const paragraphs = text.split('\n\n');
+    return (
+      <>
+        {paragraphs.map((paragraph, index) => (
+          <p
+            key={`para-${index}`}
+            className={index === 0 ? "first-letter:text-6xl first-letter:font-semibold first-letter:text-[var(--color-accent)] first-letter:float-left first-letter:mr-3 first-letter:mt-1 first-letter:leading-none" : ""}
+          >
+            {paragraph}
+          </p>
+        ))}
+      </>
+    );
+  }
+
 
   // Build a map of all chunks with their metadata
   interface ChunkInfo {
@@ -173,12 +185,7 @@ export function HighlightedText({ text, translation, previousTranslations = [], 
 
     return parts;
   };
-
-  // If not rendering paragraphs, just return the highlighted text
-  if (!renderParagraphs) {
-    return <>{buildHighlightedParts(text, 0)}</>;
-  }
-
+  
   // Split into paragraphs and render each with highlighting
   const paragraphs = text.split('\n\n');
   let currentOffset = 0;

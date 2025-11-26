@@ -3,8 +3,8 @@ import { ReadingView } from "../components/ReadingView";
 
 export function meta({}: Route.MetaArgs) {
   return [
-    { title: "LinguaScaffold - Contextual Language Learning" },
-    { name: "description", content: "Learn languages in context with interactive reading support" },
+    { title: "Lexis" },
+    { name: "description", content: "Learn vocabulary in context with interactive reading support" },
   ];
 }
 
