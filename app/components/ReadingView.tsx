@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { TranslationResult } from './TranslationResult';
+import { HighlightedText } from './HighlightedText';
 import type { TranslationResponse } from '../routes/api.translate';
 
 interface TooltipPosition {
@@ -14,6 +15,7 @@ export function ReadingView() {
   const [tooltipPosition, setTooltipPosition] = useState<TooltipPosition | null>(null);
   const [translation, setTranslation] = useState<TranslationResponse | null>(null);
   const [isTranslating, setIsTranslating] = useState(false);
+  const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const readingPanelRef = useRef<HTMLDivElement>(null);
 
@@ -213,35 +215,67 @@ export function ReadingView() {
 
             <div className="prose prose-lg font-serif text-[var(--color-ink-light)] leading-relaxed space-y-6">
               <p className="first-letter:text-6xl first-letter:font-semibold first-letter:text-[var(--color-accent)] first-letter:float-left first-letter:mr-3 first-letter:mt-1 first-letter:leading-none">
-                Lorsque j'avais six ans j'ai vu, une fois, une magnifique image, dans un livre sur la Forêt Vierge qui s'appelait "Histoires Vécues". Ça représentait un serpent boa qui avalait un fauve. Voilà la copie du dessin.
+                <HighlightedText 
+                  text={"Lorsque j'avais six ans j'ai vu, une fois, une magnifique image, dans un livre sur la Forêt Vierge qui s'appelait \"Histoires Vécues\". Ça représentait un serpent boa qui avalait un fauve. Voilà la copie du dessin."}
+                  translation={translation}
+                  onHoverChange={setHoveredIndex}
+                />
               </p>
 
               <p>
-                On disait dans le livre: "Les serpents boas avalent leur proie tout entière, sans la mâcher. Ensuite ils ne peuvent plus bouger et ils dorment pendant les six mois de leur digestion."
+                <HighlightedText 
+                  text={"On disait dans le livre: \"Les serpents boas avalent leur proie tout entière, sans la mâcher. Ensuite ils ne peuvent plus bouger et ils dorment pendant les six mois de leur digestion.\""}
+                  translation={translation}
+                  onHoverChange={setHoveredIndex}
+                />
               </p>
 
               <p>
-                J'ai alors beaucoup réfléchi sur les aventures de la jungle et, à mon tour, j'ai réussi, avec un crayon de couleur, à tracer mon premier dessin. Mon dessin numéro 1. Il était comme ça:
+                <HighlightedText 
+                  text={"J'ai alors beaucoup réfléchi sur les aventures de la jungle et, à mon tour, j'ai réussi, avec un crayon de couleur, à tracer mon premier dessin. Mon dessin numéro 1. Il était comme ça:"}
+                  translation={translation}
+                  onHoverChange={setHoveredIndex}
+                />
               </p>
 
               <p>
-                J'ai montré mon chef d'œuvre aux grandes personnes et je leur ai demandé si mon dessin leur faisait peur.
+                <HighlightedText 
+                  text={"J'ai montré mon chef d'œuvre aux grandes personnes et je leur ai demandé si mon dessin leur faisait peur."}
+                  translation={translation}
+                  onHoverChange={setHoveredIndex}
+                />
               </p>
 
               <p>
-                Elles m'ont répondu: "Pourquoi un chapeau ferait-il peur?"
+                <HighlightedText 
+                  text={"Elles m'ont répondu: \"Pourquoi un chapeau ferait-il peur?\""}
+                  translation={translation}
+                  onHoverChange={setHoveredIndex}
+                />
               </p>
 
               <p>
-                Mon dessin ne représentait pas un chapeau. Il représentait un serpent boa qui digérait un éléphant. J'ai alors dessiné l'intérieur du serpent boa, afin que les grandes personnes puissent comprendre. Elles ont toujours besoin d'explications.
+                <HighlightedText 
+                  text={"Mon dessin ne représentait pas un chapeau. Il représentait un serpent boa qui digérait un éléphant. J'ai alors dessiné l'intérieur du serpent boa, afin que les grandes personnes puissent comprendre. Elles ont toujours besoin d'explications."}
+                  translation={translation}
+                  onHoverChange={setHoveredIndex}
+                />
               </p>
 
               <p>
-                Les grandes personnes m'ont conseillé de laisser de côté les dessins de serpents boas ouverts ou fermés, et de m'intéresser plutôt à la géographie, à l'histoire, au calcul et à la grammaire. C'est ainsi que j'ai abandonné, à l'âge de six ans, une magnifique carrière de peintre.
+                <HighlightedText 
+                  text={"Les grandes personnes m'ont conseillé de laisser de côté les dessins de serpents boas ouverts ou fermés, et de m'intéresser plutôt à la géographie, à l'histoire, au calcul et à la grammaire. C'est ainsi que j'ai abandonné, à l'âge de six ans, une magnifique carrière de peintre."}
+                  translation={translation}
+                  onHoverChange={setHoveredIndex}
+                />
               </p>
 
               <p>
-                J'avais été découragé par l'insuccès de mon dessin numéro 1 et de mon dessin numéro 2. Les grandes personnes ne comprennent jamais rien toutes seules, et c'est fatigant, pour les enfants, de toujours et toujours leur donner des explications.
+                <HighlightedText 
+                  text={"J'avais été découragé par l'insuccès de mon dessin numéro 1 et de mon dessin numéro 2. Les grandes personnes ne comprennent jamais rien toutes seules, et c'est fatigant, pour les enfants, de toujours et toujours leur donner des explications."}
+                  translation={translation}
+                  onHoverChange={setHoveredIndex}
+                />
               </p>
             </div>
           </article>
@@ -266,7 +300,7 @@ export function ReadingView() {
           {/* Sidebar Content */}
           <div className="flex-1 overflow-y-auto p-6">
             {translation ? (
-              <TranslationResult translation={translation} onClose={handleCloseTranslation} />
+              <TranslationResult translation={translation} onClose={handleCloseTranslation} hoveredIndex={hoveredIndex} />
             ) : (
               <div className="flex items-center justify-center h-full text-center px-4">
                 <div className="text-[var(--color-sepia)]">

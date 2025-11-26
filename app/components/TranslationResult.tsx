@@ -1,11 +1,76 @@
 import type { TranslationResponse } from '../routes/api.translate';
+import { generateChunkColors, getColorWithOpacity } from '../utils/colors';
 
 interface TranslationResultProps {
   translation: TranslationResponse;
   onClose: () => void;
+  hoveredIndex: number | null;
 }
 
-export function TranslationResult({ translation, onClose }: TranslationResultProps) {
+function renderTextWithHighlights(
+  text: string,
+  chunks: string[],
+  colors: string[],
+  hoveredIndex: number | null
+) {
+  let remainingText = text;
+  const parts: React.ReactNode[] = [];
+  let globalIndex = 0;
+
+  // Sort chunks by their position in the text (longest first to avoid partial matches)
+  const sortedChunks = chunks
+    .map((chunk, index) => ({ chunk, index, pos: text.indexOf(chunk) }))
+    .filter(item => item.pos !== -1)
+    .sort((a, b) => a.pos - b.pos);
+
+  let lastIndex = 0;
+
+  sortedChunks.forEach(({ chunk, index, pos }) => {
+    // Add text before this chunk
+    if (pos > lastIndex) {
+      parts.push(
+        <span key={`text-${globalIndex++}`}>
+          {text.slice(lastIndex, pos)}
+        </span>
+      );
+    }
+
+    // Add the highlighted chunk as a pill
+    const isHovered = hoveredIndex === index;
+    parts.push(
+      <span
+        key={`chunk-${index}`}
+        className="inline-block px-2 py-0.5 rounded-md font-medium transition-all duration-200"
+        style={{
+          backgroundColor: isHovered
+            ? colors[index]
+            : getColorWithOpacity(colors[index], 0.25),
+          color: isHovered ? 'white' : 'inherit',
+          transform: isHovered ? 'scale(1.05)' : 'scale(1)',
+        }}
+      >
+        {chunk}
+      </span>
+    );
+
+    lastIndex = pos + chunk.length;
+  });
+
+  // Add remaining text
+  if (lastIndex < text.length) {
+    parts.push(
+      <span key={`text-${globalIndex++}`}>
+        {text.slice(lastIndex)}
+      </span>
+    );
+  }
+
+  return <>{parts}</>;
+}
+
+export function TranslationResult({ translation, onClose, hoveredIndex }: TranslationResultProps) {
+  const colors = generateChunkColors(translation.chunkPairs.length);
+  const translationChunks = translation.chunkPairs.map(pair => pair.translation);
   return (
     <div className="animate-fadeIn">
       {/* Header with close button */}
@@ -24,15 +89,6 @@ export function TranslationResult({ translation, onClose }: TranslationResultPro
         </button>
       </div>
 
-      {/* Original Text */}
-      <div className="bg-white rounded-xl p-5 shadow-sm border border-[var(--color-border)] mb-4">
-        <h4 className="text-xs font-semibold text-[var(--color-sepia)] uppercase tracking-wider mb-2">
-          Original
-        </h4>
-        <p className="font-serif text-lg text-[var(--color-ink)] leading-relaxed">
-          {translation.original}
-        </p>
-      </div>
 
       {/* Natural Translation */}
       <div className="bg-gradient-to-br from-[var(--color-accent)] to-[var(--color-accent-dark)] rounded-xl p-5 shadow-md mb-4 text-white">
@@ -50,42 +106,13 @@ export function TranslationResult({ translation, onClose }: TranslationResultPro
           Direct Translation
         </h4>
         <p className="text-base text-[var(--color-ink-light)] leading-relaxed">
-          {translation.directTranslation}
+          {renderTextWithHighlights(
+            translation.directTranslation,
+            translationChunks,
+            colors,
+            hoveredIndex
+          )}
         </p>
-      </div>
-
-      {/* Chunk Pairs */}
-      <div className="bg-white rounded-xl p-5 shadow-sm border border-[var(--color-border)]">
-        <h4 className="text-xs font-semibold text-[var(--color-sepia)] uppercase tracking-wider mb-3 flex items-center gap-2">
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
-          </svg>
-          Word-by-Word Breakdown
-        </h4>
-        <div className="space-y-2">
-          {translation.chunkPairs.map((pair, index) => (
-            <div
-              key={index}
-              className="flex items-center gap-3 p-3 bg-[var(--color-parchment)] rounded-lg hover:bg-[var(--color-amber-light)] hover:bg-opacity-20 transition-colors"
-            >
-              <div className="flex-1">
-                <div className="font-serif text-base text-[var(--color-ink)] font-medium">
-                  {pair.original}
-                </div>
-              </div>
-              <div className="text-[var(--color-sepia)]">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                </svg>
-              </div>
-              <div className="flex-1">
-                <div className="text-sm text-[var(--color-ink-light)]">
-                  {pair.translation}
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
       </div>
     </div>
   );
